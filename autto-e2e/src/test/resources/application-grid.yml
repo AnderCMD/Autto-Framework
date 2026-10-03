@@ -1,0 +1,6 @@
+# Selenium Grid started with docker compose (see docker-compose.yml)
+#   docker compose up -d && ./mvnw test -Dspring.profiles.active=qa,grid
+autto:
+  execution:
+    target: remote
+    remote-url: ${SELENIUM_GRID_URL:http://localhost:4444}

@@ -1,0 +1,6 @@
+# Continuous integration: combine with an environment profile, e.g. SPRING_PROFILES_ACTIVE=qa,ci
+autto:
+  browser:
+    headless: true
+  report:
+    timestamped: false

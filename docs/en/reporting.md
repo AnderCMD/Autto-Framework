@@ -4,7 +4,7 @@
 
 ## Outputs
 
-After every run `target/autto-reports/` contains:
+After every run `autto-e2e/target/autto-reports/` contains (folder configurable with `autto.report.dir`):
 
 ```
 target/autto-reports/
@@ -41,8 +41,8 @@ The folder is self-contained: zip it or publish it as a CI artifact and it opens
 
 | Evidence | Location in the report |
 |---|---|
-| Screenshot at failure (`screenshot.mode=on_failure`) | Under the failing step |
-| Screenshot after each step (`screenshot.mode=always`) | Under every step |
+| Screenshot at failure (`autto.evidence.screenshot=on-failure`) | Under the failing step |
+| Screenshot after each step (`autto.evidence.screenshot=always`) | Under every step |
 | `Report.*` calls and `scenario.log/attach` inside a step | Under that step |
 | URL, page source, browser console, video | In the **Evidence** node at the end of the scenario |
 | Exceptions in hooks | In the **Setup** or **Evidence** node |
@@ -53,18 +53,19 @@ Videos are recorded by periodically capturing WebDriver screenshots and encoding
 (pure Java). This works for headless browsers, Selenium Grid, cloud vendors and Appium without ffmpeg or a
 desktop session.
 
-- `video.mode=on_failure` (default): every scenario is recorded, only failures are kept.
-- `video.fps` controls smoothness vs. overhead (default 3).
-- Only the last `video.max.seconds` are kept.
+- `autto.evidence.video=on-failure` (default): every scenario is recorded, only failures are kept.
+- `autto.evidence.video-fps` controls smoothness vs. overhead (default 3).
+- Only the last `autto.evidence.video-max-duration` is kept.
 - The MP4 is played inline in Chrome, Edge, Firefox and Safari. Open-source Chromium builds lack the H.264 codec;
   use the *Download video* link there.
-- While recording, `browser.unhandled.prompt` defaults to `ignore` so background screenshots never dismiss alerts.
+- While recording, `autto.browser.unhandled-prompt` defaults to `ignore` so background screenshots never dismiss alerts.
 
-Selenium Grid users can also enable the Grid's own recording with `capabilities.se:recordVideo=true`.
+Selenium Grid users can also enable the Grid's own recording with the capability `se:recordVideo: true`.
 
 ## Report API
 
-`io.github.andercmd.autto.core.report.Report` writes into the current step (thread-safe, no-op outside a scenario):
+`io.github.andercmd.autto.core.report.Report` writes into the current step (thread-safe, no-op outside a scenario,
+registered secrets are masked):
 
 ```java
 Report.info("Order created: " + id);
@@ -93,13 +94,17 @@ scenario.attach(pdf, "application/pdf", "invoice.pdf");   // stored in attachmen
 
 ## Customization
 
-- **Theme, title, name:** `report.theme`, `report.title`, `report.name`.
-- **Extra dashboard rows:** `report.info.Release=2.4.0`, `report.info.Team=Payments`.
-- **Styles and scripts:** edit `src/main/resources/autto/report/autto.css` and `autto.js`.
-- **History:** `report.timestamped=true` creates one folder per run.
-- **Single portable file:** `report.screenshots.base64=true` embeds screenshots in the HTML (videos are still files).
+- **Theme, title, name:** `autto.report.theme`, `autto.report.title`, `autto.report.name`.
+- **Extra dashboard rows:** `autto.report.info.Release: 2.4.0`, `autto.report.info.Team: Payments`.
+- **Styles and scripts:** edit `autto-core/src/main/resources/autto/report/autto.css` and `autto.js`.
+- **History:** `autto.report.timestamped=true` creates one folder per run.
+- **Single portable file:** `autto.report.screenshots-base64=true` embeds screenshots in the HTML (videos stay files).
+
+The dashboard environment table shows profiles, browser, driver resolution, target, OS, Java, Selenium, Cucumber and
+Spring Boot versions and the CI run. Secret values never appear: URLs are redacted and secrets masked.
 
 ## Logs
 
 `logs/autto.log` contains every log line with thread and scenario name (`%X{scenario}`), which makes parallel runs
-readable. Use `-Dautto.log.level=DEBUG` to trace each interaction of `BasePage`.
+readable, and secrets are masked (`%maskedMsg`). Use `-Dautto.log.level=DEBUG` to trace each interaction of
+`BasePage`.

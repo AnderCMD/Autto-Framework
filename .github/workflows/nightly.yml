@@ -8,8 +8,12 @@ on:
 permissions:
   contents: read
 
+env:
+  MAVEN_ARGS: -B -ntp
+  SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD || 'secret_sauce' }}
+
 jobs:
-  regression:
+  grid:
     name: Regression · Selenium Grid · ${{ matrix.browser }}
     runs-on: ubuntu-latest
     strategy:
@@ -28,11 +32,11 @@ jobs:
         run: docker compose up -d --wait
 
       - name: Run regression in parallel against the grid
+        env:
+          SPRING_PROFILES_ACTIVE: qa,ci,grid
+          AUTTO_BROWSER_NAME: ${{ matrix.browser }}
         run: >
-          ./mvnw -B -ntp test
-          -Dexecution.target=remote
-          -Dremote.url=http://localhost:4444
-          -Dbrowser=${{ matrix.browser }}
+          ./mvnw install
           -Dcucumber.filter.tags="@regression"
           -Dcucumber.execution.parallel.enabled=true
           -Dcucumber.execution.parallel.config.fixed.parallelism=2
@@ -45,6 +49,35 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: autto-nightly-${{ matrix.browser }}
-          path: target/autto-reports
+          name: autto-nightly-grid-${{ matrix.browser }}
+          path: autto-e2e/target/autto-reports
+          retention-days: 30
+
+  docker-browsers:
+    name: Regression · browsers in Docker (WebDriverManager) · ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: "27"
+
+      - name: Run regression with containerized browsers
+        env:
+          SPRING_PROFILES_ACTIVE: qa,ci,docker
+          AUTTO_BROWSER_NAME: ${{ matrix.browser }}
+        run: ./mvnw install -Dcucumber.filter.tags="@regression"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autto-nightly-docker-${{ matrix.browser }}
+          path: autto-e2e/target/autto-reports
           retention-days: 30

@@ -4,62 +4,64 @@
 
 ### `Autto targets Java 27...` (Maven Enforcer)
 
-Tu JDK es anterior a `java.version`. Instala JDK 27 (Early Access hasta marzo de 2027) o compila con
-`-Djava.version=25` (cualquier valor ≥ 21). Hazlo permanente en `.mvn/maven.config`.
+Tu JDK es anterior a `java.version`. Instala JDK 27 (Early Access hasta marzo de 2027) o añade `-Djava.version=25`
+(cualquier valor ≥ 21), de forma permanente en `.mvn/maven.config`.
 
-### `SessionNotCreatedException: ... user data directory is already in use` / Chrome se cierra en Linux
+### `The password of test user 'standard' is not available`
 
-Normalmente Chrome no puede iniciar su sandbox (ejecutando como root o dentro de un contenedor). El framework añade
-`--no-sandbox --disable-dev-shm-usage` automáticamente al ejecutar como root, en CI (variable `CI`) o en Docker. En
-otros casos añádelos con `-Dbrowser.args=--no-sandbox,--disable-dev-shm-usage`.
+Falta el secreto: `cp .env.example .env` y complétalo, o define la variable de entorno / secreto del CI
+(`SAUCE_PASSWORD`). La línea de log `Autto configuration loaded · profiles [...] · .env <ruta>` indica qué `.env` se
+usó.
 
-### `This version of ChromeDriver only supports Chrome version N`
+### `Invalid Autto configuration: ...`
 
-Hay un driver en el `PATH` (o en `webdriver.chrome.driver`) que no coincide con el navegador. Elimínalo y deja que
-Selenium Manager resuelva el correcto, o fija la versión del navegador con `-Dbrowser.version=<versión>`.
+Un valor de `application*.yml`, `.env`, una variable `AUTTO_*` o una propiedad `-D` tiene tipo o rango incorrecto. El
+mensaje indica la clave.
 
-### Selenium Manager no puede descargar drivers (proxy corporativo / sin conexión)
+### `WebDriverManager could not resolve the driver ... Falling back to Selenium Manager`
 
-Define la variable estándar `HTTPS_PROXY`, o proporciona los drivers manualmente con
-`-Dwebdriver.chrome.driver=/ruta/chromedriver` (`webdriver.gecko.driver`, `webdriver.edge.driver`).
+WebDriverManager no pudo acceder a sus URLs de metadatos (proxy, firewall, sin conexión). La ejecución continúa con
+Selenium Manager. Configura el proxy (`-Dwdm.proxy=host:puerto`) o un mirror, o usa
+`autto.driver.resolution=selenium-manager` para omitir WebDriverManager.
 
-### Safari: `Could not create a session: You must enable 'Allow remote automation'`
+### El navegador no está instalado
 
-Ejecuta `safaridriver --enable` una vez (macOS pide tu contraseña) y activa *Desarrollo → Permitir automatización
-remota*.
+- Activa `autto.driver.docker-fallback=true` (requiere Docker), o
+- usa el perfil `docker`, o
+- pide una versión (`-Dautto.browser.version=stable`): Selenium Manager descarga Chrome/Firefox.
 
-### Los escenarios se reportan dos veces / no se encuentran
+### Chrome se cierra en Linux / `user data directory is already in use`
 
-- Ejecuta mediante `CucumberTestSuite` (`./mvnw test`); el pom excluye el descubrimiento directo del engine de
-  Cucumber.
-- Los archivos `.feature` deben estar en `src/test/resources/features/`.
-- Las clases de steps deben estar dentro del paquete `cucumber.glue` (`io.github.andercmd.autto`). Tras renombrar el
-  paquete, actualiza `cucumber.glue` en `junit-platform.properties`.
+Chrome no puede iniciar su sandbox (root o contenedor). El framework añade `--no-sandbox --disable-dev-shm-usage`
+al ejecutar como root, en CI o en Docker; en otros casos añádelos a `autto.browser.args`.
+
+### Safari: `You must enable 'Allow remote automation'`
+
+Ejecuta `safaridriver --enable` una vez y activa *Desarrollo → Permitir automatización remota*.
+
+### `No qualifying bean of type ...` / `Could not find @CucumberContextConfiguration`
+
+- Las páginas deben llevar `@PageObject` (o `@Component`) y estar bajo el paquete de `E2eTestApplication`.
+- Debe haber exactamente una clase con `@CucumberContextConfiguration` en el glue.
+- `cucumber.glue` debe contener tu paquete e `io.github.andercmd.autto.core.cucumber`.
 
 ### `No browser is running on thread ...`
 
-Se usó un page object en un escenario con tag `@nobrowser`, o fuera de un escenario. Quita el tag o inicia un
-navegador con `DriverManager.start()`.
+Se usó un page object en un escenario `@nobrowser` o fuera de un escenario. Quita el tag o llama a
+`DriverManager.start()`.
 
-### El video no se reproduce en el reporte
+### Checkstyle hace fallar el build
 
-- Chromium open source no incluye el códec H.264; usa Chrome/Edge/Firefox/Safari o el enlace *Download video*.
-- Por defecto los videos solo se conservan para escenarios fallidos (`video.mode=on_failure`).
+Lee la regla indicada: longitud de línea (120), imports sin usar, `Thread.sleep`, `System.out`, esperas
+implícitas... Corrige el código; `-Dcheckstyle.skip` existe solo para emergencias.
 
-### Las alertas desaparecen inesperadamente
+### El video no se reproduce
 
-Con la grabación de video activa, las capturas en segundo plano podrían cerrar alertas, por eso
-`browser.unhandled.prompt` es `ignore` por defecto. Si lo cambiaste, restáuralo o desactiva el video en esos
-escenarios.
+Chromium open source no incluye el códec H.264: usa Chrome/Edge/Firefox/Safari o *Download video*. Por defecto los
+videos solo se conservan para escenarios fallidos.
 
 ### Pruebas inestables (flaky)
 
-- Nunca uses `Thread.sleep`; usa las esperas de `BasePage` (`visible`, `clickable`, `waitUntil`) o Awaitility.
-- Mantén `timeouts.implicit=0`.
-- Haz los escenarios independientes y que creen sus propios datos.
-- Re-ejecuta los fallos con `-Dcucumber.features=@target/autto-reports/rerun.txt` para distinguir flaky de roto.
-
-### El build de Maven falla aunque el reporte esté bien
-
-Los escenarios fallidos hacen fallar el build a propósito. Usa `-Dautto.ignoreFailures=true` cuando un paso del
-pipeline deba continuar (p. ej. para publicar reportes) y obtén el resultado del XML de JUnit.
+Nada de `Thread.sleep` (lo bloquea Checkstyle), mantén `autto.timeouts.implicit=0s`, haz los escenarios
+independientes y re-ejecuta los fallos con `-Dcucumber.features=@target/autto-reports/rerun.txt` para distinguir
+flaky de roto.

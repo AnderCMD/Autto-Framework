@@ -1,7 +1,7 @@
 # Selenium Grid 4 for local / CI remote execution.
 #
 #   docker compose up -d
-#   ./mvnw test -Dexecution.target=remote -Dremote.url=http://localhost:4444 -Dbrowser=firefox
+#   ./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,grid -Dautto.browser.name=firefox
 #   docker compose down
 #
 # Grid console: http://localhost:4444/ui  (watch sessions live with noVNC, password: secret)

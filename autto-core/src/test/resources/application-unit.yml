@@ -1,0 +1,5 @@
+autto:
+  timeouts:
+    explicit: 20s
+  evidence:
+    video: off

@@ -4,7 +4,7 @@
 
 ## Salidas
 
-Después de cada ejecución `target/autto-reports/` contiene:
+Después de cada ejecución `autto-e2e/target/autto-reports/` contiene (carpeta configurable con `autto.report.dir`):
 
 ```
 target/autto-reports/
@@ -42,8 +42,8 @@ conexión.
 
 | Evidencia | Ubicación en el reporte |
 |---|---|
-| Captura al fallar (`screenshot.mode=on_failure`) | Debajo del step que falla |
-| Captura después de cada step (`screenshot.mode=always`) | Debajo de cada step |
+| Captura al fallar (`autto.evidence.screenshot=on-failure`) | Debajo del step que falla |
+| Captura después de cada step (`autto.evidence.screenshot=always`) | Debajo de cada step |
 | Llamadas `Report.*` y `scenario.log/attach` dentro de un step | Debajo de ese step |
 | URL, código fuente, consola del navegador, video | En el nodo **Evidence** al final del escenario |
 | Excepciones en hooks | En el nodo **Setup** o **Evidence** |
@@ -54,20 +54,20 @@ Los videos se graban capturando periódicamente pantallas con WebDriver y codifi
 (Java puro). Funciona con navegadores headless, Selenium Grid, proveedores en la nube y Appium, sin ffmpeg ni sesión
 de escritorio.
 
-- `video.mode=on_failure` (por defecto): se graban todos los escenarios y solo se conservan los fallidos.
-- `video.fps` equilibra fluidez y sobrecarga (por defecto 3).
-- Solo se conservan los últimos `video.max.seconds`.
+- `autto.evidence.video=on-failure` (por defecto): se graban todos los escenarios y solo se conservan los fallidos.
+- `autto.evidence.video-fps` equilibra fluidez y sobrecarga (por defecto 3).
+- Solo se conserva la parte final indicada por `autto.evidence.video-max-duration`.
 - El MP4 se reproduce dentro del reporte en Chrome, Edge, Firefox y Safari. Las builds open source de Chromium no
   incluyen el códec H.264; ahí usa el enlace *Download video*.
-- Mientras se graba, `browser.unhandled.prompt` es `ignore` por defecto para que las capturas en segundo plano nunca
+- Mientras se graba, `autto.browser.unhandled-prompt` es `ignore` por defecto para que las capturas en segundo plano nunca
   cierren alertas.
 
-En Selenium Grid también puedes activar la grabación propia del Grid con `capabilities.se:recordVideo=true`.
+En Selenium Grid también puedes activar la grabación propia del Grid con la capability `se:recordVideo: true`.
 
 ## API Report
 
 `io.github.andercmd.autto.core.report.Report` escribe en el step actual (thread-safe, no hace nada fuera de un
-escenario):
+escenario, los secretos registrados se enmascaran):
 
 ```java
 Report.info("Order created: " + id);
@@ -96,14 +96,19 @@ scenario.attach(pdf, "application/pdf", "invoice.pdf");   // se guarda en attach
 
 ## Personalización
 
-- **Tema, título, nombre:** `report.theme`, `report.title`, `report.name`.
-- **Filas extra en el dashboard:** `report.info.Release=2.4.0`, `report.info.Team=Payments`.
-- **Estilos y scripts:** edita `src/main/resources/autto/report/autto.css` y `autto.js`.
-- **Historial:** `report.timestamped=true` crea una carpeta por ejecución.
-- **Archivo único portable:** `report.screenshots.base64=true` incrusta las capturas en el HTML (los videos siguen
-  siendo archivos).
+- **Tema, título, nombre:** `autto.report.theme`, `autto.report.title`, `autto.report.name`.
+- **Filas extra en el dashboard:** `autto.report.info.Release: 2.4.0`, `autto.report.info.Team: Payments`.
+- **Estilos y scripts:** edita `autto-core/src/main/resources/autto/report/autto.css` y `autto.js`.
+- **Historial:** `autto.report.timestamped=true` crea una carpeta por ejecución.
+- **Archivo único portable:** `autto.report.screenshots-base64=true` incrusta las capturas en el HTML (los videos
+  siguen siendo archivos).
+
+La tabla de entorno del dashboard muestra perfiles, navegador, resolución del driver, destino, SO, Java y versiones de
+Selenium, Cucumber y Spring Boot, además de la ejecución de CI. Los secretos nunca aparecen: las URLs se ocultan y
+los secretos se enmascaran.
 
 ## Logs
 
 `logs/autto.log` contiene cada línea de log con el hilo y el nombre del escenario (`%X{scenario}`), lo que hace
-legibles las ejecuciones en paralelo. Usa `-Dautto.log.level=DEBUG` para trazar cada interacción de `BasePage`.
+legibles las ejecuciones en paralelo, y los secretos se enmascaran (`%maskedMsg`). Usa `-Dautto.log.level=DEBUG`
+para trazar cada interacción de `BasePage`.

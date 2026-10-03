@@ -1,0 +1,21 @@
+# Secret scanning configuration (https://github.com/gitleaks/gitleaks)
+#   CI: .github/workflows/ci.yml · local: pre-commit (see .pre-commit-config.yaml)
+title = "Autto gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# Generic rule for .env-style assignments of passwords / tokens with a real value
+[[rules]]
+id = "autto-env-secret-assignment"
+description = "Secret assigned in a .env / properties / yaml file"
+regex = '''(?i)^\s*(?:export\s+)?[a-z0-9_.-]*(?:password|passwd|secret|token|api[_-]?key|access[_-]?key)[a-z0-9_.-]*\s*[=:]\s*['"]?([^\s'"$#{}]{6,})['"]?\s*$'''
+secretGroup = 1
+path = '''(\.env.*|.*\.properties|.*\.ya?ml)$'''
+
+[allowlist]
+description = "Documentation placeholders"
+regexes = [
+  '''\$\{[A-Z0-9_]+(:[^}]*)?}''',
+  '''(?i)(changeme|your[-_]?(password|token|key)|<[^>]+>)''',
+]

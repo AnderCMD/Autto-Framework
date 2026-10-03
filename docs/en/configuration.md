@@ -2,140 +2,172 @@
 
 [← Back to README](../../README.md) · [Español](../es/configuracion.md)
 
-## Resolution order
+Configuration lives in `autto-e2e/src/test/resources/application.yml` and is bound to the typed
+`AuttoProperties` record. IntelliJ IDEA and VS Code (Spring Boot tools) auto-complete every `autto.*` key with its
+description thanks to the metadata shipped in `autto-core`.
 
-Every value is looked up in four layers; the last one wins:
+## Precedence
 
-1. `src/test/resources/autto.properties` — project defaults
-2. `src/test/resources/environments/<env>.properties` — environment values (`env=qa` by default)
-3. Environment variables prefixed with `AUTTO_` — `browser.headless` → `AUTTO_BROWSER_HEADLESS`
-4. JVM system properties — `./mvnw test -Dbrowser.headless=true`
+Highest first:
 
-Blank values are ignored, so an empty `-Dbrowser=` never erases a configured value. Values support
-`${placeholders}` (see [Placeholders](#placeholders)).
+1. JVM system properties — `./mvnw test -Dautto.browser.name=firefox`
+2. Environment variables — `AUTTO_BROWSER_NAME=firefox` (relaxed binding: dots and dashes become `_`)
+3. `.env` file (git-ignored) — see [Secrets](secrets.md)
+4. `application-<profile>.yml` for each active profile (the last profile wins)
+5. `application.yml`
+6. Built-in defaults of `AuttoProperties`
+
+Invalid values stop the run immediately with the offending key, e.g.
+`Invalid Autto configuration: ... autto.evidence.video-fps must be between 1 and 30`.
+
+## Profiles
 
 ```bash
-# Select another environment file
-./mvnw test -Denv=staging
-AUTTO_ENV=staging ./mvnw test
+./mvnw test -Dspring.profiles.active=staging            # one environment
+./mvnw test -Dspring.profiles.active=qa,ci,grid         # environment + CI settings + Selenium Grid
+SPRING_PROFILES_ACTIVE=qa,docker ./mvnw test            # environment variable (or in .env)
 ```
 
-Create `environments/local.properties` (git-ignored) for personal overrides and run with `-Denv=local`.
+| Profile | Purpose |
+|---|---|
+| `qa` (default) | QA environment URL |
+| `staging`, `prod` | Other environments (`prod` disables videos) |
+| `ci` | Headless browsers |
+| `docker` | Browsers in disposable Docker containers (WebDriverManager) |
+| `grid` | Selenium Grid (`docker compose up -d`) |
+| `browserstack` | BrowserStack (credentials from `.env` / CI secrets) |
+
+Create `application-local.yml` (git-ignored) for personal settings and run with `-Dspring.profiles.active=qa,local`.
 
 ## Reference
 
-### General
+Durations accept `500ms`, `15s`, `5m`. Enums accept `on-failure`, `ON_FAILURE`, `onFailure`.
+
+### `autto` (root)
 
 | Key | Default | Description |
 |---|---|---|
-| `env` | `qa` | Environment file to load from `environments/`. |
-| `base.url` | — | Base URL used by `BasePage.open("/path")`. |
+| `autto.base-url` | — | Base URL used by `BasePage.open("/path")`. |
 
-### Browser
-
-| Key | Default | Description |
-|---|---|---|
-| `browser` | `chrome` | `chrome`, `firefox`, `edge`, `safari`. |
-| `browser.version` | installed | Exact version or channel (`stable`, `beta`, `dev`, `canary`). Selenium Manager downloads it if needed. |
-| `browser.headless` | `false` | Headless mode (ignored by Safari). |
-| `browser.window.size` | `1920x1080` | `maximized` or `<width>x<height>`. |
-| `browser.args` | — | Extra command-line arguments, comma separated. |
-| `browser.binary` | — | Custom browser binary (Chromium, Brave, Firefox Developer Edition…). |
-| `browser.incognito` | `false` | Private/incognito window. |
-| `browser.mobile.emulation` | — | Chromium device emulation, e.g. `iPhone 14 Pro Max`, `Pixel 7`. |
-| `browser.accept.insecure.certs` | `true` | Accept self-signed certificates. |
-| `browser.page.load.strategy` | `normal` | `normal`, `eager`, `none`. |
-| `browser.download.dir` | `target/downloads` | Download folder (Chromium and Firefox). |
-| `browser.unhandled.prompt` | `ignore` if video is on | `accept`, `dismiss`, `accept and notify`, `dismiss and notify`, `ignore`. |
-| `browser.console.logs` | `true` | Collect console messages and JS errors through WebDriver BiDi and attach them on failure. |
-| `browser.prefs.<name>` | — | Browser preferences (Chromium `prefs` / Firefox profile), e.g. `browser.prefs.intl.accept_languages=es-ES`. |
-
-### Execution target
+### `autto.browser`
 
 | Key | Default | Description |
 |---|---|---|
-| `execution.target` | `local` | `local`, `remote` (Grid / cloud) or `appium`. |
-| `remote.url` | `http://localhost:4444` | Selenium Grid or vendor hub URL. Credentials in the URL are redacted in logs. |
-| `platform.name` | — | Requested OS for remote sessions (`Windows 11`, `macOS 15`, `linux`). |
-| `capabilities.<name>` | — | Any W3C / vendor capability, see below. |
-| `appium.url` | `http://127.0.0.1:4723` | Appium server. |
-| `appium.platform` | `android` | `android` or `ios`. |
-| `appium.app` | — | Path or URL of the `.apk` / `.ipa` / `.app`. Omit it for mobile web. |
+| `name` | `chrome` | `chrome`, `chromium`, `firefox`, `edge`, `safari`. |
+| `version` | installed | Exact version or channel (`stable`, `beta`, `dev`, `canary`); uses Selenium Manager, which can download it. |
+| `headless` | `false` | Headless mode (ignored by Safari). |
+| `window-size` | `1920x1080` | `maximized` or `<width>x<height>`. |
+| `args` | `[]` | Extra command-line arguments. |
+| `binary` | — | Custom browser executable (Brave, Chromium builds, Firefox Developer Edition…). |
+| `incognito` | `false` | Private / incognito window. |
+| `mobile-emulation` | — | Chromium device emulation, e.g. `iPhone 14 Pro Max`. |
+| `accept-insecure-certs` | `true` | Accept self-signed certificates. |
+| `page-load-strategy` | `normal` | `normal`, `eager`, `none`. |
+| `download-dir` | `target/downloads` | Download folder (Chromium and Firefox). |
+| `unhandled-prompt` | `ignore` while recording | `accept`, `dismiss`, `accept and notify`, `dismiss and notify`, `ignore`. |
+| `console-logs` | `true` | Collect console messages and JavaScript errors (WebDriver BiDi), attached on failure. |
+| `prefs.<name>` | — | Browser preferences, e.g. `intl.accept_languages: es-ES`. |
 
-#### Capabilities
+### `autto.driver`
 
-Flat keys become nested JSON. Values are converted to booleans/numbers unless quoted; `[a,b]` is a list.
+| Key | Default | Description |
+|---|---|---|
+| `resolution` | `webdrivermanager` | `webdrivermanager` or `selenium-manager`. |
+| `fallback` | `true` | Use Selenium Manager when WebDriverManager fails. |
+| `docker-fallback` | `false` | Start the browser in Docker when it is not installed locally (requires Docker). |
+| `cache-path` | `~/.cache/selenium` | WebDriverManager driver cache. |
 
-```properties
-capabilities.se:recordVideo=true
-capabilities.bstack:options.os=Windows
-capabilities.bstack:options.osVersion="11"
-capabilities.goog:chromeOptions.args=[--lang=es]
-capabilities.appium:deviceName=Pixel 8
+WebDriverManager also reads its own `wdm.*` system properties / `WDM_*` variables (proxy, mirrors, timeouts), e.g.
+`-Dwdm.proxy=proxy.company.com:8080`.
+
+### `autto.execution`
+
+| Key | Default | Description |
+|---|---|---|
+| `target` | `local` | `local`, `docker`, `remote` (Grid / cloud) or `appium`. |
+| `remote-url` | `http://localhost:4444` | Grid or vendor hub. Credentials in the URL are redacted in logs and reports. |
+| `platform-name` | — | Requested OS for remote sessions (`Windows 11`, `macOS 15`, `linux`). |
+| `capabilities` | `{}` | Any W3C / vendor capability (see below). |
+
+```yaml
+autto:
+  execution:
+    capabilities:
+      se:recordVideo: true              # vendor names with ':' work as-is ("[se:recordVideo]" also accepted)
+      bstack:options:
+        os: Windows
+        osVersion: '"11"'               # inner quotes keep it a string
+      goog:chromeOptions:
+        args: [--lang=es]
 ```
 
-#### Placeholders
-
-Any value can reference another key or an environment variable with `${NAME}` or `${NAME:default}`. This keeps
-credentials out of the repository:
-
-```properties
-remote.url=https://${BROWSERSTACK_USERNAME}:${BROWSERSTACK_ACCESS_KEY}@hub-cloud.browserstack.com/wd/hub
-capabilities.bstack:options.buildName=${GITHUB_RUN_ID:local-build}
-```
-
-A placeholder without default that cannot be resolved fails with a clear message when the key is read.
-
-### Timeouts (seconds)
+### `autto.docker` (target `docker`)
 
 | Key | Default | Description |
 |---|---|---|
-| `timeouts.implicit` | `0` | Implicit wait. Keep 0; the framework uses explicit waits. |
-| `timeouts.explicit` | `15` | Default explicit wait of `BasePage`. |
-| `timeouts.page.load` | `60` | Page load timeout. |
-| `timeouts.script` | `30` | Async script timeout. |
-| `timeouts.polling.ms` | `250` | Polling interval of explicit waits (milliseconds). |
+| `vnc` | `false` | Expose a noVNC URL (printed in the log) to watch the browser. |
+| `screen-resolution` | `1920x1080x24` | Virtual screen. |
+| `shm-size` | `2g` | Shared memory of the container. |
 
-### Evidence
+### `autto.appium` (target `appium`)
 
 | Key | Default | Description |
 |---|---|---|
-| `screenshot.mode` | `on_failure` | `off`, `on_failure`, `always` (after every step). |
-| `video.mode` | `on_failure` | `off`, `on_failure` (recorded always, kept only for failures), `always`. |
-| `video.fps` | `3` | Frames per second (1–30). Higher values cost more WebDriver calls. |
-| `video.max.seconds` | `300` | Only the last N seconds of a scenario are kept. |
-| `video.max.width` | `1280` | Frames are downscaled to this width. |
-| `evidence.page.source` | `true` | Attach the HTML of the page when a scenario fails. |
+| `url` | `http://127.0.0.1:4723` | Appium server. |
+| `platform` | `android` | `android` or `ios`. |
+| `app` | — | `.apk` / `.ipa` / `.app` path or URL. Omit for mobile web. |
 
-### Report
+### `autto.timeouts`
 
 | Key | Default | Description |
 |---|---|---|
-| `report.dir` | `target/autto-reports` | Output folder of the Extent report and evidence. |
-| `report.timestamped` | `false` | One sub-folder per run (`yyyyMMdd-HHmmss`) to keep history. |
-| `report.title` | `Autto · Test Automation Report` | Browser tab title. |
-| `report.name` | `Autto Framework · Execution report` | Name shown in the header. |
-| `report.theme` | `dark` | `dark` or `standard`. |
-| `report.offline` | `true` | Copy report assets locally so it opens without internet. |
-| `report.timeline` | `true` | Timeline chart in the dashboard. |
-| `report.screenshots.base64` | `false` | Embed screenshots inside the HTML (portable single file, heavier). |
-| `report.author` | — | Default author when a scenario has no `@author:<name>` tag. |
-| `report.show.host` | `true` | Show user and host name in the dashboard. |
-| `report.info.<label>` | — | Extra rows for the dashboard environment table. |
+| `implicit` | `0s` | Keep it at 0: the framework uses explicit waits. |
+| `explicit` | `15s` | Default explicit wait of `BasePage`. |
+| `page-load` | `60s` | Page load timeout. |
+| `script` | `30s` | Asynchronous script timeout. |
+| `polling` | `250ms` | Polling interval of explicit waits. |
+
+### `autto.evidence`
+
+| Key | Default | Description |
+|---|---|---|
+| `screenshot` | `on-failure` | `off`, `on-failure`, `always` (after every step). |
+| `video` | `on-failure` | `off`, `on-failure` (recorded always, kept only for failures), `always`. |
+| `video-fps` | `3` | 1–30. |
+| `video-max-duration` | `5m` | Only the last part of long scenarios is kept. |
+| `video-max-width` | `1280` | Frames are downscaled to this width. |
+| `page-source` | `true` | Attach the page HTML when a scenario fails. |
+
+### `autto.report`
+
+| Key | Default | Description |
+|---|---|---|
+| `dir` | `target/autto-reports` | Output folder (relative to the module). |
+| `timestamped` | `false` | One sub-folder per run. |
+| `title` / `name` | Autto… | Browser tab title / header name. |
+| `theme` | `dark` | `dark` or `standard`. |
+| `offline` | `true` | Copy assets so the report opens without internet. |
+| `timeline` | `true` | Timeline chart. |
+| `screenshots-base64` | `false` | Embed screenshots in the HTML. |
+| `author` | — | Default author when a scenario has no `@author:<name>` tag. |
+| `show-host` | `true` | Show user and host in the dashboard. |
+| `info.<label>` | — | Extra dashboard rows. |
 
 ### Cucumber (`junit-platform.properties`)
 
 | Key | Default | Description |
 |---|---|---|
 | `cucumber.filter.tags` | `not @wip and not @ignore and not @demo-failure` | Tag expression. |
-| `cucumber.features` | — | Override selected features, e.g. `classpath:features/login`. |
-| `cucumber.glue` | `io.github.andercmd.autto` | Packages scanned for steps and hooks. |
-| `cucumber.plugin` | Extent + HTML + JSON + JUnit + NDJSON + rerun | Report plugins. |
-| `cucumber.execution.parallel.enabled` | `false` | Run scenarios in parallel. |
-| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Parallel threads. |
+| `cucumber.features` | — | Override selected features (`classpath:features/login`, `@target/autto-reports/rerun.txt`). |
+| `cucumber.glue` | `io.github.andercmd.autto.e2e,io.github.andercmd.autto.core.cucumber` | Steps + framework hooks. |
+| `cucumber.execution.parallel.enabled` | `false` | Parallel scenarios. |
+| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Threads. |
 
-### Logging
+### Other
 
 | Key | Default | Description |
 |---|---|---|
-| `autto.log.level` | `INFO` | Log level of framework and test classes (`DEBUG` shows every click/type). |
+| `autto.dotenv.path` / `AUTTO_DOTENV_PATH` | auto | Explicit `.env` location. |
+| `autto.log.level` | `INFO` | Log level of framework and tests (`DEBUG` traces every interaction). |
+| `autto.ignoreFailures` | `false` | Keep the Maven build green when scenarios fail. |
+| `checkstyle.skip` | `false` | Skip the coding-standard check (not recommended). |

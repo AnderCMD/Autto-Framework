@@ -1,0 +1,20 @@
+# Configuration used by the framework unit tests
+spring:
+  profiles:
+    default: unit
+
+autto:
+  base-url: https://example.test
+  browser:
+    name: firefox
+    args: [--lang=es, --mute-audio]
+  execution:
+    capabilities:
+      "[se:recordVideo]": true
+      appium:deviceName: Pixel 8
+      bstack:options:
+        os: Windows
+        osVersion: '"11"'
+  report:
+    info:
+      Team: QA

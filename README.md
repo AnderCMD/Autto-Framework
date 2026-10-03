@@ -2,11 +2,13 @@
 
 # Autto Framework
 
-**Open source QA automation template · Cucumber · Selenium · Extent Reports · Java 27**
+**Enterprise, open source QA automation framework**
+**Spring Boot · Cucumber · Selenium · WebDriverManager · Extent Reports · Java 27**
 
 [![CI](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml/badge.svg)](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Java](https://img.shields.io/badge/Java-27-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6db33f)
 ![Cucumber](https://img.shields.io/badge/Cucumber-8.0.4-23d96c)
 ![Selenium](https://img.shields.io/badge/Selenium-4.50.0-43b02a)
 
@@ -16,38 +18,41 @@ English · [Español](README.es.md)
 
 ---
 
-Autto is a ready-to-use, production-grade starting point for UI test automation. Clone it, rename the package and
-start writing scenarios: browsers, drivers, parallel execution, evidence and beautiful reports are already solved.
+Autto is a production-grade starting point for UI test automation. The engine (`autto-core`) is a reusable Spring
+Boot auto-configuration; the test suite (`autto-e2e`) only contains business features. Browsers, drivers, secrets,
+parallelism, evidence and reports are already solved.
 
 ## Highlights
 
 | | |
 |---|---|
-| **BDD** | Cucumber 8 on the JUnit Platform 6 engine, PicoContainer dependency injection, parallel scenarios. |
-| **Screaming architecture** | Code is organized by business feature (`features/login`, `features/checkout`…), not by technical layer. |
-| **Any browser** | Chrome, Firefox, Edge and Safari. Drivers are resolved automatically by Selenium Manager (it can even download Chrome/Firefox when missing). |
-| **Any platform** | Windows, macOS, Linux, Docker, Selenium Grid, BrowserStack / Sauce Labs / LambdaTest, Android and iOS (Appium). |
-| **Rich reports** | Extent Spark dashboard with timeline, tags, devices, authors, failures-only report and JSON archive. |
-| **Evidence** | Screenshots, **MP4 video of every scenario** (no ffmpeg needed), page source, browser console logs (BiDi), attachments. |
-| **Configuration** | One properties file + per-environment files, overridable with `AUTTO_*` env vars or `-D` flags. |
-| **CI ready** | GitHub Actions matrix (Windows/macOS/Linux × Chrome/Firefox/Edge + Safari), nightly Grid regression, Dependabot, Maven Wrapper. |
+| **Spring Boot** | Dependency injection with one instance per scenario (`@PageObject`), profiles per environment, typed and validated configuration with IDE auto-completion. |
+| **Screaming architecture** | Tests organized by business feature (`features/login`, `features/checkout`…), engine and suite in separate modules. |
+| **Any browser, no matter what** | Chrome, Chromium, Firefox, Edge, Safari. WebDriverManager → Selenium Manager fallback → Docker fallback when the browser is not installed. |
+| **Any platform** | Windows, macOS, Linux, Docker browsers, Selenium Grid, BrowserStack / Sauce Labs / LambdaTest, Android and iOS (Appium). |
+| **Secure secrets** | `.env` (git-ignored) locally, CI secrets in pipelines, values masked in logs and reports, gitleaks in CI and pre-commit. |
+| **Rich reports** | Extent Spark dashboard, timeline, tags, devices, authors, failures-only report; Cucumber HTML/JSON/JUnit outputs. |
+| **Evidence** | Screenshots, **MP4 video of every scenario** (no ffmpeg), page source, browser console (BiDi), attachments. |
+| **Quality gates** | Maven Enforcer, Checkstyle (no `Thread.sleep`, no `System.out`…), unit tests, JaCoCo profile, Dependabot. |
+| **CI ready** | GitHub Actions: secret scanning, build, cross-OS × cross-browser matrix, nightly Grid and Docker regressions. |
 
 ## Tech stack
 
 | Component | Version |
 |---|---|
-| Java | 27 (configurable through `java.version`) |
-| Cucumber JVM | 8.0.4 |
+| Java | 27 (configurable through `java.version`, minimum 21) |
+| Spring Boot | 4.1.1 |
+| Cucumber JVM (+ cucumber-spring) | 8.0.4 |
 | Selenium | 4.50.0 |
+| WebDriverManager | 6.4.0 |
 | Appium Java client | 10.1.1 |
 | JUnit Platform | 6.1.3 |
 | Extent Reports | 5.1.2 |
-| AssertJ · Datafaker · Jackson · Awaitility · Logback | latest stable |
+| Checkstyle | 14.3.0 |
 | Maven (wrapper) | 3.9.16 |
 
-> **About Java 27.** The project targets Java 27, whose General Availability is scheduled for March 2027. Until then,
-> install an Early Access build from [jdk.java.net/27](https://jdk.java.net/27/) or build with any JDK ≥ 21 by
-> passing `-Djava.version=25` (or 21). The code only uses language features available since Java 21.
+> **About Java 27.** Its General Availability is scheduled for March 2027. Until then install an
+> [Early Access build](https://jdk.java.net/27/) or build with any JDK ≥ 21 using `-Djava.version=25` (or 21).
 
 ## Quick start
 
@@ -55,57 +60,64 @@ start writing scenarios: browsers, drivers, parallel execution, evidence and bea
 git clone https://github.com/AnderCMD/Autto-Framework.git
 cd Autto-Framework
 
-# Everything (unit tests + scenarios) with Chrome
-./mvnw test
+cp .env.example .env              # Windows: copy .env.example .env
+# edit .env → SAUCE_PASSWORD=secret_sauce   (public password of the demo store)
 
-# Smoke scenarios in headless Firefox
-./mvnw test -Dbrowser=firefox -Dbrowser.headless=true -Dcucumber.filter.tags=@smoke
-
-# Using an older JDK
-./mvnw test -Djava.version=21
+./mvnw install                                                            # everything, Chrome
+./mvnw -pl autto-e2e test -Dautto.browser.name=firefox -Dcucumber.filter.tags=@smoke
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,docker             # browsers in Docker
+./mvnw install -Djava.version=21                                          # older JDK
 ```
 
-Open **`target/autto-reports/index.html`** when the run finishes.
+Open **`autto-e2e/target/autto-reports/index.html`**.
 
 ## Project structure
 
 ```
-src
-├── main/java/io/github/andercmd/autto/core      ← reusable framework (do not put tests here)
-│   ├── config      layered configuration (AuttoConfig, ConfigKeys)
-│   ├── driver      browser/device factory, options, thread-safe DriverManager
-│   ├── media       screenshots and video recorder
-│   ├── report      Extent Cucumber plugin, Report API, report folders
-│   ├── ui          BasePage with explicit waits
-│   ├── data        JSON test data + Datafaker
-│   └── context     ScenarioContext shared between steps
-└── test
-    ├── java/io/github/andercmd/autto
-    │   ├── CucumberTestSuite.java              ← entry point
-    │   ├── shared/hooks/BrowserHooks.java      ← browser life cycle + evidence
-    │   └── features                            ← ONE FOLDER PER BUSINESS FEATURE
-    │       ├── login/      LoginPage, LoginSteps, Credentials
-    │       ├── inventory/  InventoryPage, InventorySteps
-    │       ├── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
-    │       └── showcase/   report demo without browser
-    └── resources
-        ├── autto.properties                    ← main configuration
-        ├── environments/{qa,staging,prod}.properties
-        ├── features/<feature>/*.feature        ← Gherkin, same folders as the code
-        ├── testdata/<feature>/*.json
-        ├── junit-platform.properties           ← Cucumber options
-        └── logback-test.xml
+Autto-Framework
+├── pom.xml                         parent: versions, plugins, quality gates
+├── .env.example                    secret NAMES (copy to .env, which is git-ignored)
+├── config/checkstyle/              coding standard
+├── docker-compose.yml              Selenium Grid
+├── autto-core/                     ENGINE (publishable library, Spring Boot auto-configuration)
+│   └── src/main/java/io/github/andercmd/autto/core/
+│       ├── config/     AuttoProperties (typed), AuttoSettings, DotEnv, profiles
+│       ├── spring/     AuttoAutoConfiguration
+│       ├── driver/     DriverResolver (WebDriverManager → Selenium Manager → Docker), DriverFactory, DriverManager
+│       ├── ui/         BasePage, @PageObject
+│       ├── cucumber/   BrowserHooks (browser life cycle + evidence)
+│       ├── media/      screenshots, video recorder
+│       ├── report/     Extent Cucumber plugin, Report API
+│       ├── security/   Secrets masking, Credentials
+│       ├── data/       JSON test data, Datafaker
+│       └── context/    ScenarioContext
+└── autto-e2e/                      TEST SUITE of the application under test
+    └── src/test/
+        ├── java/io/github/andercmd/autto/e2e/
+        │   ├── CucumberTestSuite · CucumberSpringConfiguration · E2eTestApplication
+        │   ├── shared/TestUsers.java
+        │   └── features/           ONE FOLDER PER BUSINESS FEATURE
+        │       ├── login/      LoginPage, LoginSteps
+        │       ├── inventory/  InventoryPage, InventorySteps
+        │       └── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        └── resources/
+            ├── application.yml + application-{qa,staging,prod,ci,docker,grid,browserstack}.yml
+            ├── features/<feature>/*.feature
+            ├── junit-platform.properties
+            └── logback-test.xml
 ```
 
 ## Documentation
 
 | Guide | Description |
 |---|---|
-| [Getting started](docs/en/getting-started.md) | Requirements, installation, first run, IDE setup |
-| [Architecture](docs/en/architecture.md) | Screaming architecture, layers, execution flow |
-| [Writing tests](docs/en/writing-tests.md) | Add a new feature step by step, page objects, data, context |
-| [Configuration](docs/en/configuration.md) | Every configuration key |
-| [Running tests](docs/en/running-tests.md) | Browsers, tags, parallelism, Grid, Docker, cloud, Appium |
+| [Getting started](docs/en/getting-started.md) | Requirements, first run, IDE setup |
+| [Architecture](docs/en/architecture.md) | Modules, screaming architecture, dependency injection, execution flow |
+| [Architecture decisions](docs/en/decisions.md) | Why Spring Boot, WebDriverManager, `.env` and multi-module |
+| [Writing tests](docs/en/writing-tests.md) | New feature step by step, page objects, users, data, own beans |
+| [Configuration](docs/en/configuration.md) | Profiles, precedence and every `autto.*` key |
+| [Secrets & environment variables](docs/en/secrets.md) | `.env`, CI secrets, masking, leak prevention |
+| [Running tests](docs/en/running-tests.md) | Tags, browsers, parallelism, Docker, Grid, cloud, Appium |
 | [Reports & evidence](docs/en/reporting.md) | Extent report, screenshots, videos, Report API |
 | [CI/CD](docs/en/ci-cd.md) | GitHub Actions, Jenkins, GitLab, Azure DevOps |
 | [Troubleshooting](docs/en/troubleshooting.md) | Common problems and fixes |
@@ -113,12 +125,11 @@ src
 
 ## Demo application
 
-The sample scenarios target [saucedemo.com](https://www.saucedemo.com), a public demo store. Replace the
-`features/*` folders with your own application's features and change `base.url` in `environments/*.properties`.
-The `@demo-failure` scenario fails on purpose; run it to see failure evidence in the report:
+The sample scenarios target [saucedemo.com](https://www.saucedemo.com). Replace `features/*`, `test-data.users` and
+`autto.base-url` with your application. The `@demo-failure` scenario fails on purpose to showcase failure evidence:
 
 ```bash
-./mvnw test -Dcucumber.filter.tags=@demo-failure
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags=@demo-failure
 ```
 
 ## License

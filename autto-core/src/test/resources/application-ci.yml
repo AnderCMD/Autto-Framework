@@ -1,0 +1,5 @@
+autto:
+  browser:
+    headless: true
+  timeouts:
+    explicit: 30s

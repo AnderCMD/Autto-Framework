@@ -21,10 +21,26 @@ concurrency:
 env:
   JAVA_RELEASE: "27"
   MAVEN_ARGS: -B -ntp
+  SPRING_PROFILES_ACTIVE: qa,ci
+  # Secrets of the application under test. Configure them in Settings → Secrets and variables → Actions.
+  # The fallback only exists because saucedemo.com publishes its demo password; remove it for real applications.
+  SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD || 'secret_sauce' }}
 
 jobs:
-  framework:
-    name: Framework checks (unit tests + report pipeline)
+  secrets-scan:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Scan the repository history for leaked secrets
+        run: >
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --redact --verbose --config /repo/.gitleaks.toml
+
+  build:
+    name: Build · checkstyle · unit tests · report pipeline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -39,26 +55,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: maven-${{ runner.os }}-
 
-      - name: Unit tests
-        run: ./mvnw -Punit test
-
-      - name: Report pipeline (no browser)
-        run: ./mvnw test -Dcucumber.filter.tags=@showcase
+      - name: Verify (enforcer, checkstyle, unit tests, browser-less scenarios)
+        run: ./mvnw verify -Dcucumber.filter.tags=@showcase
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: autto-report-showcase
-          path: target/autto-reports
+          path: autto-e2e/target/autto-reports
           retention-days: 14
 
   e2e:
     name: E2E · ${{ matrix.os }} · ${{ matrix.browser }}
-    needs: framework
+    needs: build
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental || false }}
     strategy:
@@ -83,7 +96,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: maven-${{ runner.os }}-
 
       - name: Enable safaridriver
@@ -92,17 +105,18 @@ jobs:
 
       - name: Run scenarios
         shell: bash
+        env:
+          AUTTO_BROWSER_NAME: ${{ matrix.browser }}
+          AUTTO_BROWSER_HEADLESS: ${{ matrix.browser != 'safari' }}
         run: >
-          ./mvnw test
-          -Dbrowser=${{ matrix.browser }}
-          -Dbrowser.headless=${{ matrix.browser != 'safari' }}
+          ./mvnw install
           -Dcucumber.filter.tags="${{ github.event.inputs.tags || '@smoke' }}"
-          -Dreport.info.Runner="${{ matrix.os }}"
+          -Dautto.report.info.Runner="${{ matrix.os }}"
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: autto-report-${{ matrix.os }}-${{ matrix.browser }}
-          path: target/autto-reports
+          path: autto-e2e/target/autto-reports
           retention-days: 14

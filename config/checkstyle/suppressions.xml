@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!-- The video recorder unit test needs real time to pass between frames -->
+    <suppress id="noThreadSleep" files="[\\/]autto-core[\\/]src[\\/]test[\\/].*VideoRecorderTest\.java"/>
+    <!-- The driver factory is the single place allowed to configure the implicit wait -->
+    <suppress id="noImplicitWait" files="[\\/]driver[\\/]DriverFactory\.java"/>
+</suppressions>

@@ -1,0 +1,107 @@
+# =====================================================================================================================
+#  Autto · test suite configuration
+#
+#  Precedence (highest first):
+#    1. JVM system properties   ./mvnw test -Dautto.browser.name=firefox
+#    2. Environment variables   AUTTO_BROWSER_NAME=firefox  (CI secrets live here)
+#    3. .env file               local, git-ignored copy of .env.example
+#    4. application-<profile>.yml   select with -Dspring.profiles.active=staging / SPRING_PROFILES_ACTIVE
+#    5. this file
+#
+#  Full reference: docs/en/configuration.md · docs/es/configuracion.md
+#  IDE auto-completion of autto.* keys is provided by the configuration metadata shipped in autto-core.
+# =====================================================================================================================
+
+spring:
+  profiles:
+    default: qa
+  main:
+    banner-mode: off
+
+autto:
+  browser:
+    # chrome | chromium | firefox | edge | safari
+    name: chrome
+    # exact version or channel (stable, beta, dev, canary); empty = installed browser
+    version:
+    headless: false
+    # maximized | <width>x<height>
+    window-size: 1920x1080
+    args: []
+    incognito: false
+    # Chromium device emulation, e.g. "iPhone 14 Pro Max"
+    mobile-emulation:
+    accept-insecure-certs: true
+    # normal | eager | none
+    page-load-strategy: normal
+    download-dir: target/downloads
+    # collect console messages and JavaScript errors (WebDriver BiDi), attached on failure
+    console-logs: true
+    # browser preferences, e.g.  intl.accept_languages: es-ES
+    prefs: {}
+
+  driver:
+    # webdrivermanager | selenium-manager
+    resolution: webdrivermanager
+    # use Selenium Manager if WebDriverManager cannot resolve the driver
+    fallback: true
+    # browser not installed? start it in Docker automatically (requires Docker)
+    docker-fallback: false
+
+  execution:
+    # local | docker | remote | appium
+    target: local
+    remote-url: http://localhost:4444
+    platform-name:
+    # any W3C / vendor capability, e.g.  se:recordVideo: true   or   bstack:options: {os: Windows}
+    capabilities: {}
+
+  timeouts:
+    implicit: 0s
+    explicit: 15s
+    page-load: 60s
+    script: 30s
+    polling: 250ms
+
+  evidence:
+    # off | on-failure | always (screenshot after every step)
+    screenshot: on-failure
+    # off | on-failure | always
+    video: on-failure
+    video-fps: 3
+    video-max-duration: 5m
+    video-max-width: 1280
+    page-source: true
+
+  report:
+    dir: target/autto-reports
+    timestamped: false
+    title: Autto · Test Automation Report
+    name: Autto Framework · Execution report
+    # dark | standard
+    theme: dark
+    offline: true
+    timeline: true
+    screenshots-base64: false
+    author:
+    show-host: true
+    info:
+      Project: Autto Framework demo (saucedemo.com)
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Test users. Passwords are NEVER written here: they reference secrets resolved from .env (local) or CI secrets.
+# ---------------------------------------------------------------------------------------------------------------------
+test-data:
+  users:
+    standard:
+      username: ${SAUCE_STANDARD_USERNAME:standard_user}
+      password: ${SAUCE_PASSWORD}
+    locked:
+      username: locked_out_user
+      password: ${SAUCE_PASSWORD}
+    problem:
+      username: problem_user
+      password: ${SAUCE_PASSWORD}
+    performance:
+      username: performance_glitch_user
+      password: ${SAUCE_PASSWORD}

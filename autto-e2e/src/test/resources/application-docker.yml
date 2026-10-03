@@ -1,0 +1,8 @@
+# Browsers in disposable Docker containers (WebDriverManager). Only Docker is needed: no browser installation.
+#   ./mvnw test -Dspring.profiles.active=qa,docker -Dautto.browser.name=firefox
+autto:
+  execution:
+    target: docker
+  docker:
+    vnc: false
+    screen-resolution: 1920x1080x24

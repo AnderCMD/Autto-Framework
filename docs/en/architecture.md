@@ -2,91 +2,103 @@
 
 [← Back to README](../../README.md) · [Español](../es/arquitectura.md)
 
+## Modules
+
+```
+autto-parent (pom)                    versions, plugins, quality gates (enforcer, checkstyle, jacoco)
+├── autto-core   (jar, publishable)   the engine, packaged as a Spring Boot auto-configuration
+└── autto-e2e    (tests only)         the suite of ONE application under test (demo: saucedemo.com)
+```
+
+`autto-core` knows nothing about any business; `autto-e2e` knows nothing about drivers, videos or reports. A company
+publishes `autto-core` once and every product team creates its own `<product>-e2e` project that depends on it.
+
 ## Screaming architecture
 
 > "Your architecture should tell readers about the system, not about the frameworks you used." — Robert C. Martin
 
-When you open `src/test/java/.../features` you see **what the product does** (`login`, `inventory`, `checkout`), not
-technical layers such as `pages/`, `steps/`, `models/`. Everything needed for one business feature lives together:
+Inside `autto-e2e` you see **what the product does**, not technical layers:
 
 ```
-features/checkout/
-├── CartPage.java          page object(s) of the feature
-├── CheckoutPage.java
-├── CheckoutSteps.java     step definitions of the feature
-└── Customer.java          models / builders used by the feature
+autto-e2e/src/test/java/io/github/andercmd/autto/e2e/
+├── CucumberTestSuite.java             entry point (JUnit Platform suite)
+├── CucumberSpringConfiguration.java   Cucumber ↔ Spring bridge
+├── E2eTestApplication.java            Spring configuration of the suite (add your beans here)
+├── shared/TestUsers.java              cross-feature support (users from application.yml + secrets)
+└── features/
+    ├── login/       LoginPage, LoginSteps
+    ├── inventory/   InventoryPage, InventorySteps
+    └── checkout/    CartPage, CheckoutPage, CheckoutSteps, Customer
 
-resources/features/checkout/checkout.feature    Gherkin, same folder name
-resources/testdata/checkout/...                 data, same folder name
+autto-e2e/src/test/resources/
+├── application.yml, application-<profile>.yml
+├── features/<feature>/*.feature       same folder names as the code
+└── testdata/<feature>/*.json
 ```
 
-Benefits:
+Everything of one feature lives together → high cohesion, clear ownership (`CODEOWNERS` per folder), easy deletion.
+Reuse between features is explicit (constructor injection of another feature's page).
 
-- **Cohesion**: changing a feature touches one folder.
-- **Ownership**: squads can own folders (`CODEOWNERS`).
-- **Scalability**: hundreds of features do not turn into a single `pages/` package with hundreds of classes.
-- **Deletion is easy**: removing a feature means removing a folder.
-
-Cross-feature reuse is explicit: `CheckoutSteps` injects `InventoryPage` from `features.inventory`. Generic,
-feature-agnostic code lives in `shared/` (test side) or in the `core` framework (main side).
-
-## Layers
+## Layers and dependency rule
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│ src/test  ── WHAT is tested                                          │
-│   features/<feature>/*.feature   business language (Gherkin)         │
-│   features/<feature>/*Steps      glue: Gherkin → page objects        │
-│   features/<feature>/*Page       UI knowledge: locators + actions    │
-│   shared/hooks                   browser life cycle + evidence       │
-├──────────────────────────────────────────────────────────────────────┤
-│ src/main  ── HOW (framework core, reusable, no business knowledge)   │
-│   config  driver  ui  media  report  data  context                   │
-├──────────────────────────────────────────────────────────────────────┤
-│ Libraries: Cucumber · JUnit Platform · Selenium · Appium · Extent    │
-└──────────────────────────────────────────────────────────────────────┘
+features (Gherkin, steps, pages)  ──►  autto-core  ──►  Spring Boot · Cucumber · Selenium · WebDriverManager · Appium · Extent
 ```
 
-Dependency rule: `features` → `core` → libraries. The core never depends on test code.
-
-### Core packages
+### `autto-core` packages
 
 | Package | Responsibility | Key classes |
 |---|---|---|
-| `core.config` | Layered configuration with typed getters | `AuttoConfig`, `ConfigKeys` |
-| `core.driver` | Creates and owns browsers/devices per thread | `DriverFactory`, `BrowserOptionsFactory`, `DriverManager`, `DriverSession`, `CapabilitiesParser` |
-| `core.ui` | Base page object with explicit waits and safe actions | `BasePage` |
-| `core.media` | Evidence capture | `Screenshots`, `VideoRecorder`, `EvidenceMode` |
-| `core.report` | Extent report generation and public logging API | `ExtentCucumberPlugin`, `ExtentReportManager`, `Report`, `ReportPaths` |
-| `core.data` | JSON test data with `${placeholders}` and random data | `TestData` |
-| `core.context` | Per-scenario state shared between step classes | `ScenarioContext` |
+| `config` | Spring Boot based configuration, profiles, `.env` | `AuttoProperties`, `AuttoSettings`, `DotEnv`, `DotEnvEnvironmentPostProcessor` |
+| `spring` | Auto-configuration (beans for test projects) | `AuttoAutoConfiguration` |
+| `driver` | Driver resolution and creation per thread | `DriverResolver` (WDM → Selenium Manager), `DriverFactory`, `DriverManager`, `DriverSession`, `BrowserOptionsFactory`, `CapabilitiesParser` |
+| `ui` | Page object base and stereotype | `BasePage`, `@PageObject` |
+| `cucumber` | Framework glue | `BrowserHooks` |
+| `media` | Evidence capture | `Screenshots`, `VideoRecorder` |
+| `report` | Extent report + public logging API | `ExtentCucumberPlugin`, `ExtentReportManager`, `Report`, `ReportPaths` |
+| `security` | Secret masking | `Secrets`, `Credentials`, `MaskingMessageConverter` |
+| `data` | JSON test data, random data | `TestData` |
+| `context` | Per-scenario shared state | `ScenarioContext` |
+
+## Dependency injection
+
+| Bean | Scope | Provided by |
+|---|---|---|
+| `AuttoSettings`, `AuttoProperties` | singleton | `AuttoAutoConfiguration` |
+| `ScenarioContext` | scenario | `AuttoAutoConfiguration` |
+| `@PageObject` classes | scenario | component scan of `E2eTestApplication` |
+| Step definitions, hooks | scenario | `cucumber-spring` (glue) |
+| `TestUsers`, your API clients, builders… | singleton (or scenario) | component scan |
+
+The Spring context is created once per run and shared by all scenarios and threads; scenario-scoped beans are
+recreated for every scenario, so parallel execution is safe.
 
 ## Execution flow
 
 ```
-mvn test
- └─ Surefire → JUnit Platform → CucumberTestSuite (@Suite, engine "cucumber")
-     ├─ ExtentCucumberPlugin  ← receives every Cucumber event (thread-safe)
-     └─ for each scenario (optionally in parallel threads)
-         ├─ @Before  BrowserHooks.startBrowser
-         │     DriverManager.start() → DriverFactory → local | remote | appium
-         │     VideoRecorder.start()  (if video.mode != off)
-         ├─ steps → page objects → DriverManager.driver()
-         │     @AfterStep screenshot (screenshot.mode)
-         └─ @After BrowserHooks.collectEvidenceAndQuit
-               URL, page source, console logs, video → scenario.attach(...)
-               DriverManager.quit()
- └─ TestRunFinished → Extent flush → target/autto-reports/index.html
+./mvnw install
+ └─ autto-e2e: Surefire → JUnit Platform → CucumberTestSuite (engine "cucumber")
+     ├─ ExtentCucumberPlugin ← every Cucumber event (thread-safe), AuttoSettings loaded
+     ├─ Spring context (once) ← application.yml + profile + .env + env vars + -D
+     └─ for each scenario (optionally parallel)
+         ├─ @Before BrowserHooks.startBrowser
+         │     DriverFactory: local (WDM → Selenium Manager → Docker fallback) | docker | remote | appium
+         │     VideoRecorder.start()
+         ├─ steps (scenario-scoped beans) → @PageObject pages → DriverManager.driver()
+         │     @AfterStep screenshot
+         └─ @After evidence (URL, page source, console, video) → quit
+ └─ TestRunFinished → Extent flush → autto-e2e/target/autto-reports/index.html
 ```
 
 ## Design decisions
 
+See [Architecture decisions (ADR)](decisions.md) for Spring Boot, WebDriverManager, secrets and the multi-module
+layout. Other choices:
+
 | Decision | Reason |
 |---|---|
-| `By` constants instead of `@FindBy` / `PageFactory` | Page objects are stateless and parallel-safe; no stale proxies. |
-| Pages look up the driver lazily (`DriverManager.driver()`) | PicoContainer can build pages before the browser exists; one browser per thread. |
-| Implicit wait = 0, explicit waits everywhere | Mixing both causes unpredictable timeouts. |
-| Custom Extent plugin instead of the third-party adapter | Full control of the report, works with Cucumber 8, supports parallel runs, videos and hook evidence. |
-| Video from WebDriver screenshots + JCodec | Works everywhere (headless, Grid, cloud, Appium) without ffmpeg or a desktop session. |
-| Properties + env vars + `-D` | Zero-code switching between local, CI and cloud; secrets never committed. |
-| PicoContainer | Lightweight constructor injection; a fresh object graph per scenario. |
+| `By` constants instead of `@FindBy` | Stateless, parallel-safe page objects. |
+| Driver looked up lazily (`DriverManager.driver()`) | Pages can be created before the browser exists; one browser per thread. |
+| Implicit wait 0, explicit waits | Predictable timeouts (enforced by Checkstyle). |
+| Custom Extent plugin | Full control, Cucumber 8 support, parallel, videos, masking. |
+| Video from WebDriver screenshots + JCodec | Works headless, in Docker, Grid, cloud and Appium without ffmpeg. |

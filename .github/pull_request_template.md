@@ -11,7 +11,7 @@
 
 ## Checklist
 
-- [ ] `./mvnw -Punit test` passes / pasa
-- [ ] `./mvnw test -Dcucumber.filter.tags=@showcase` passes / pasa
+- [ ] `./mvnw verify -Dcucumber.filter.tags=@showcase` passes (enforcer, checkstyle, unit tests) / pasa
+- [ ] No secrets committed; new secret names added to `.env.example` / Sin secretos; nombres nuevos en `.env.example`
 - [ ] Documentation updated in **both** `docs/en` and `docs/es` (if applicable)
 - [ ] Code, comments and identifiers are in English

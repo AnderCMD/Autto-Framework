@@ -2,21 +2,21 @@
 
 [← Back to README](../../README.md) · [Español](../es/escribir-pruebas.md)
 
-This guide adds a new business feature, **Product search**, from scratch.
+This guide adds a business feature, **Product search**, to `autto-e2e`.
 
-## 1. Create the folders
+## 1. Folders
 
 ```
-src/test/resources/features/search/search.feature
-src/test/java/io/github/andercmd/autto/features/search/SearchPage.java
-src/test/java/io/github/andercmd/autto/features/search/SearchSteps.java
-src/test/resources/testdata/search/products.json        (optional)
+autto-e2e/src/test/resources/features/search/search.feature
+autto-e2e/src/test/java/io/github/andercmd/autto/e2e/features/search/SearchPage.java
+autto-e2e/src/test/java/io/github/andercmd/autto/e2e/features/search/SearchSteps.java
+autto-e2e/src/test/resources/testdata/search/products.json        (optional)
 ```
 
-> Feature files can be written in any Gherkin language by adding `# language: es` (or `fr`, `pt`…) as the first
-> line. Cucumber binds steps by text, so the annotation language (`@Given` or `@Dado`) does not matter.
+> Feature files can be written in any Gherkin language (`# language: es` as first line). Cucumber binds steps by
+> text, so the annotation language does not matter. Code stays in English.
 
-## 2. Write the feature in business language
+## 2. Feature in business language
 
 ```gherkin
 @search @regression
@@ -34,18 +34,15 @@ Feature: Product search
     Then only products containing "backpack" are listed
 ```
 
-Guidelines:
-
-- Describe **behaviour**, not clicks (`the customer searches for`, not `I click the search box`).
-- One scenario = one rule. Keep them independent: never rely on another scenario's state.
-- Tags: `@smoke`, `@regression`, `@critical`, feature tags (`@search`), `@author:<name>` (shown in the report),
-  `@nobrowser` (no browser is started), `@wip` / `@ignore` (excluded by default).
+- Describe **behaviour**, not clicks. One scenario = one rule. Scenarios are independent.
+- Tags: `@smoke`, `@regression`, `@critical`, feature tags, `@author:<name>`, `@nobrowser` (no browser),
+  `@wip` / `@ignore` (excluded).
+- Never write secrets in feature files; use user aliases (`"standard"`) resolved by `TestUsers`.
 
 ## 3. Page object
 
 ```java
-package io.github.andercmd.autto.features.search;
-
+@PageObject                                   // Spring bean, one instance per scenario
 public class SearchPage extends BasePage {
 
     private static final By SEARCH_BOX = By.cssSelector("[data-test='search']");
@@ -63,24 +60,23 @@ public class SearchPage extends BasePage {
 }
 ```
 
-Rules for page objects:
+Rules (several are enforced by Checkstyle):
 
-- Locators are `private static final By` constants. Prefer `data-test` / `id` attributes over CSS classes or XPath.
-- Public methods express user intent (`searchFor`), return data (`resultNames`) or other pages; **no assertions**.
-- Never store `WebElement` or `WebDriver` in fields; call `driver()` (one browser per thread).
-- Use the `BasePage` helpers: `open`, `click`, `type`, `text`, `texts`, `visible`, `clickable`, `allVisible`,
-  `selectByText`, `hover`, `isDisplayed`, `waitUntil`, `js`…
+- `private static final By` locators, prefer `data-test` / `id`.
+- Public methods express intent or return data; **no assertions**.
+- Never store `WebElement` / `WebDriver`; call `driver()`.
+- No `Thread.sleep`, no `implicitlyWait`, no `System.out`.
+- Use `BasePage` helpers: `open`, `click`, `type`, `text`, `texts`, `visible`, `clickable`, `allVisible`,
+  `selectByText`, `hover`, `isDisplayed`, `waitUntil`, `js`; configuration via `config()`.
 
 ## 4. Step definitions
 
 ```java
-package io.github.andercmd.autto.features.search;
-
 public class SearchSteps {
 
     private final SearchPage search;
 
-    public SearchSteps(SearchPage search) {     // injected by PicoContainer
+    public SearchSteps(SearchPage search) {          // constructor injection (Spring)
         this.search = search;
     }
 
@@ -98,60 +94,60 @@ public class SearchSteps {
 }
 ```
 
-- Step classes are created per scenario; declare dependencies (pages, `ScenarioContext`, other helpers) in the
-  constructor.
-- Assertions belong here (AssertJ). Use `.as("description")` for readable failures.
-- Reuse steps across features freely (e.g. `the customer is logged in as {string}` lives in `features/login`).
+Steps can inject pages, `ScenarioContext`, `TestUsers`, `AuttoProperties` or any bean of your own.
 
-## 5. Sharing data between steps: `ScenarioContext`
+## 5. Test users and secrets
+
+```yaml
+# application.yml
+test-data:
+  users:
+    buyer:
+      username: buyer@shop.test
+      password: ${BUYER_PASSWORD}       # value in .env locally, CI secret in pipelines
+```
+
+```java
+Credentials buyer = users.get("buyer");
+loginPage.loginAs(buyer);               // toString() and reports show ******
+```
+
+See [Secrets & environment variables](secrets.md).
+
+## 6. Shared state: `ScenarioContext`
 
 ```java
 public CheckoutSteps(ScenarioContext context) { this.context = context; }
-
 context.put("order.id", orderId);
 String id = context.get("order.id", String.class);
 ```
 
-A new context is created for each scenario, so nothing leaks between scenarios or threads.
-
-## 6. Test data
-
-`src/test/resources/testdata/login/users.json`:
-
-```json
-{
-  "standard": { "username": "standard_user", "password": "${users.password:secret_sauce}" }
-}
-```
+## 7. Test data and random data
 
 ```java
-Credentials user = TestData.entry("login/users.json", "standard", Credentials.class);
 List<Product> all = TestData.load("search/products.json", new TypeReference<List<Product>>() {});
 String email = TestData.faker().internet().emailAddress();
 ```
 
-`${key:default}` placeholders are resolved from the configuration, so secrets come from
-`AUTTO_USERS_PASSWORD` (env var) or `-Dusers.password=...`, never from the repository.
+JSON values support `${NAME}` / `${NAME:default}` placeholders resolved from `.env`, environment and configuration.
 
-## 7. Enrich the report (optional)
+## 8. Your own beans (API clients, DB helpers…)
 
 ```java
-Report.info("Searching " + text);
-Report.screenshot("Search results");
-Report.table("Filters", Map.of("category", "bags", "sort", "price"));
-Report.json("API response", body);
+@Component
+public class OrdersApi {
+    private final RestClient client;
+    public OrdersApi(AuttoProperties props) {
+        this.client = RestClient.create(props.baseUrl() + "/api");   // add spring-web to autto-e2e
+    }
+}
 ```
 
-See [Reports & evidence](reporting.md).
+Use them in steps to create test data quickly or to verify back-end state.
 
-## 8. Run only your feature
+## 9. Run your feature
 
 ```bash
-./mvnw test -Dcucumber.filter.tags=@search
-./mvnw test -Dcucumber.features=classpath:features/search
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags=@search
+./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/search
 ```
-
-## Scenarios without a browser
-
-Tag API, database or pure-logic scenarios with `@nobrowser` so the hooks do not start a browser. The report and
-`Report` API still work.

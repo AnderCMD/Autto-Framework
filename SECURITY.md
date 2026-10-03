@@ -17,8 +17,9 @@ Recibirás respuesta en un máximo de 7 días.
 
 ## Secrets in test automation · Secretos en la automatización
 
-- Never commit credentials. Use `${placeholders}` in test data and provide values through `AUTTO_*` environment
-  variables or CI secrets.
-- Nunca subas credenciales. Usa `${placeholders}` en los datos de prueba y define los valores con variables de entorno
-  `AUTTO_*` o secretos del CI.
-- Remote URLs with credentials (`https://user:key@hub`) are redacted in logs and reports.
+- Never commit credentials: reference them with `${NAME}` in `application.yml` / test data, keep values in the
+  git-ignored `.env` locally and in CI secrets in pipelines. See [docs/en/secrets.md](docs/en/secrets.md).
+- Nunca subas credenciales: referéncialas con `${NOMBRE}` en `application.yml` / datos de prueba, guarda los valores en
+  el `.env` (ignorado por git) en local y en los secretos del CI. Ver [docs/es/secretos.md](docs/es/secretos.md).
+- Secret values are masked in logs and reports; remote URLs with credentials are redacted.
+- gitleaks scans every push / pull request and can run as a pre-commit hook (`pre-commit install`).

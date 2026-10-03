@@ -2,143 +2,137 @@
 
 [← Volver al README](../../README.es.md) · [English](../en/running-tests.md)
 
-> En Windows usa `mvnw.cmd` en lugar de `./mvnw`. En PowerShell pon los argumentos `-D` entre comillas:
-> `"-Dbrowser=firefox"`.
+> Windows: usa `mvnw.cmd`. PowerShell: pon los `-D` entre comillas (`"-Dautto.browser.name=firefox"`).
+> Los comandos usan `-pl autto-e2e` tras un primer `./mvnw install`; usa `./mvnw install` para reconstruir todo.
 
 ## Seleccionar escenarios
 
 ```bash
-./mvnw test                                                   # todo (el filtro por defecto excluye @wip, @ignore, @demo-failure)
-./mvnw test -Dcucumber.filter.tags="@smoke"
-./mvnw test -Dcucumber.filter.tags="@regression and not @slow"
-./mvnw test -Dcucumber.features=classpath:features/login      # una carpeta
-./mvnw test -Dcucumber.features=classpath:features/login/login.feature:12   # un escenario (línea)
-./mvnw test -Dcucumber.filter.name="Successful login"         # por nombre (coincidencia parcial)
-./mvnw -Punit test                                            # solo los tests unitarios del framework
+./mvnw -pl autto-e2e test                                                   # el filtro por defecto excluye @wip, @ignore, @demo-failure
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@smoke"
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@regression and not @slow"
+./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login
+./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login/login.feature:12
+./mvnw -pl autto-e2e test -Dcucumber.filter.name="Successful login"
+./mvnw -pl autto-e2e test -Dcucumber.features=@target/autto-reports/rerun.txt    # re-ejecutar los fallos
+./mvnw -pl autto-core test                                                  # solo tests unitarios del framework
 ```
 
-Re-ejecutar solo los fallos de la ejecución anterior:
+## Entornos (perfiles)
 
 ```bash
-./mvnw test -Dcucumber.features=@target/autto-reports/rerun.txt
+./mvnw -pl autto-e2e test -Dspring.profiles.active=staging
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,ci
 ```
 
 ## Navegadores
 
 ```bash
-./mvnw test -Dbrowser=chrome
-./mvnw test -Dbrowser=firefox
-./mvnw test -Dbrowser=edge
-./mvnw test -Dbrowser=safari          # macOS, ejecuta `safaridriver --enable` una vez
-./mvnw test -Dbrowser=chrome -Dbrowser.version=beta
-./mvnw test -Dbrowser.headless=true -Dbrowser.window.size=1366x768
-./mvnw test -Dbrowser.mobile.emulation="iPhone 14 Pro Max"
+./mvnw -pl autto-e2e test -Dautto.browser.name=chrome
+./mvnw -pl autto-e2e test -Dautto.browser.name=chromium
+./mvnw -pl autto-e2e test -Dautto.browser.name=firefox
+./mvnw -pl autto-e2e test -Dautto.browser.name=edge
+./mvnw -pl autto-e2e test -Dautto.browser.name=safari                # macOS: ejecuta `safaridriver --enable` una vez
+./mvnw -pl autto-e2e test -Dautto.browser.version=beta               # Selenium Manager descarga Chrome Beta
+./mvnw -pl autto-e2e test -Dautto.browser.headless=true -Dautto.browser.window-size=1366x768
+./mvnw -pl autto-e2e test -Dautto.browser.mobile-emulation="iPhone 14 Pro Max"
+./mvnw -pl autto-e2e test -Dautto.browser.binary="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 
-Selenium Manager resuelve los drivers. Si falta el navegador (o se pide una versión concreta), Selenium Manager
-puede descargar Chrome o Firefox en `~/.cache/selenium`.
+### Cómo se resuelven los drivers ("cualquier navegador, sin importar qué")
+
+1. **WebDriverManager** detecta el navegador instalado, descarga el driver compatible y lo cachea (una vez por
+   ejecución).
+2. Si falla (sin conexión, URL bloqueada…), **Selenium Manager** toma el relevo automáticamente.
+3. Con `autto.driver.docker-fallback=true`, un navegador **no instalado** arranca en **Docker**.
+4. Con el perfil `docker` todos los navegadores corren en contenedores desechables; solo se necesita Docker.
+
+Detrás de un proxy corporativo: `-Dwdm.proxy=proxy.empresa.com:8080` (WebDriverManager) y `HTTPS_PROXY`
+(Selenium Manager).
 
 ## Ejecución en paralelo
 
-Cada escenario tiene su propio navegador, grabador de video, nodo de reporte y `ScenarioContext`.
-
 ```bash
-./mvnw test -Dcucumber.execution.parallel.enabled=true -Dcucumber.execution.parallel.config.fixed.parallelism=4
+./mvnw -pl autto-e2e test -Dcucumber.execution.parallel.enabled=true -Dcucumber.execution.parallel.config.fixed.parallelism=4
 ```
 
-Los escenarios que no deben ejecutarse a la vez se pueden serializar con recursos exclusivos, p. ej.
-`cucumber.execution.exclusive-resources.<tag>.read-write=<recurso>` en `junit-platform.properties`.
+Cada escenario tiene su navegador, video, nodo de reporte y beans de Spring de scope escenario.
 
 ## Plataformas
 
-### Local (Windows, macOS, Linux)
+### Local — Windows, macOS, Linux
 
-Por defecto (`execution.target=local`). Solo necesitas el navegador instalado.
+Por defecto (`autto.execution.target=local`).
 
-### Selenium Grid con Docker
+### Navegadores en Docker (sin instalar nada)
 
 ```bash
-docker compose up -d                       # hub + nodos Chrome, Firefox y Edge
-./mvnw test -Dexecution.target=remote -Dremote.url=http://localhost:4444 -Dbrowser=firefox
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,docker -Dautto.browser.name=firefox
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,docker -Dautto.docker.vnc=true      # verlo en vivo (URL en el log)
+```
+
+### Selenium Grid
+
+```bash
+docker compose up -d
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,grid -Dautto.browser.name=edge
 docker compose down
 ```
 
-Mira las sesiones en vivo en <http://localhost:4444/ui> (contraseña VNC `secret`).
+Consola del Grid: <http://localhost:4444/ui>.
 
 ### Proveedores en la nube
 
-Cualquier proveedor compatible con W3C funciona con `execution.target=remote`, la URL del hub y sus capabilities.
+El perfil `browserstack` está listo; las credenciales vienen de `.env` / secretos del CI:
 
-**BrowserStack**
-
-```properties
-execution.target=remote
-remote.url=https://${BROWSERSTACK_USERNAME}:${BROWSERSTACK_ACCESS_KEY}@hub-cloud.browserstack.com/wd/hub
-browser=chrome
-capabilities.bstack:options.os=Windows
-capabilities.bstack:options.osVersion="11"
-capabilities.bstack:options.projectName=Autto
-capabilities.bstack:options.buildName=${GITHUB_RUN_ID:local}
+```dotenv
+BROWSERSTACK_USERNAME=...
+BROWSERSTACK_ACCESS_KEY=...
 ```
 
-**Sauce Labs**
-
-```properties
-execution.target=remote
-remote.url=https://${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}@ondemand.eu-central-1.saucelabs.com:443/wd/hub
-browser=edge
-platform.name=Windows 11
-capabilities.sauce:options.name=Autto
+```bash
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,browserstack
 ```
 
-**LambdaTest**
+Sauce Labs / LambdaTest: copia `application-browserstack.yml` y cambia `remote-url` y las capabilities:
 
-```properties
-execution.target=remote
-remote.url=https://${LT_USERNAME}:${LT_ACCESS_KEY}@hub.lambdatest.com/wd/hub
-browser=firefox
-capabilities.LT:Options.platformName=macOS Sequoia
-capabilities.LT:Options.build=Autto
+```yaml
+autto:
+  execution:
+    target: remote
+    remote-url: https://${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}@ondemand.eu-central-1.saucelabs.com:443/wd/hub
+    platform-name: Windows 11
+    capabilities:
+      sauce:options:
+        name: Autto
 ```
-
-Pon esas líneas en un archivo de entorno (p. ej. `environments/browserstack.properties`) y ejecuta con
-`-Denv=browserstack`.
 
 ### Móvil (Appium 2+)
 
+```yaml
+# application-android.yml
+autto:
+  execution:
+    target: appium
+    capabilities:
+      browserName: Chrome              # web móvil; omítelo y define autto.appium.app para apps nativas
+      appium:deviceName: Pixel 8
+  appium:
+    platform: android
+```
+
 ```bash
-npm i -g appium && appium driver install uiautomator2   # Android
-appium                                                   # inicia el servidor
+appium &                                # npm i -g appium && appium driver install uiautomator2
+./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,android
 ```
-
-Web móvil (Chrome en Android):
-
-```properties
-execution.target=appium
-appium.platform=android
-capabilities.browserName=Chrome
-capabilities.appium:deviceName=Pixel 8
-```
-
-App nativa:
-
-```properties
-execution.target=appium
-appium.platform=ios
-appium.app=/ruta/a/MyApp.app
-capabilities.appium:deviceName=iPhone 16
-capabilities.appium:platformVersion="18.0"
-```
-
-El `AndroidDriver` / `IOSDriver` que devuelve `DriverManager.driver()` puede convertirse (cast) cuando necesites
-comandos específicos de móvil. Capturas, videos y reportes funcionan igual.
 
 ## Flags útiles
 
 | Flag | Efecto |
 |---|---|
-| `-Dautto.ignoreFailures=true` | No falla el build de Maven cuando fallan escenarios (los reportes siempre se generan). |
-| `-Dautto.log.level=DEBUG` | Registra cada clic, escritura y espera. |
-| `-Dvideo.mode=always` | Conserva el video de todos los escenarios. |
-| `-Dscreenshot.mode=always` | Captura después de cada step. |
-| `-Dreport.timestamped=true` | Conserva una carpeta de reporte por ejecución. |
+| `-Dautto.ignoreFailures=true` | No falla el build si fallan escenarios (los reportes siempre se generan). |
+| `-Dautto.log.level=DEBUG` | Traza cada interacción. |
+| `-Dautto.evidence.video=always` | Conserva el video de todos los escenarios. |
+| `-Dautto.evidence.screenshot=always` | Captura después de cada step. |
+| `-Dautto.report.timestamped=true` | Una carpeta de reporte por ejecución. |
+| `-Djava.version=25` | Compilar con un JDK anterior. |

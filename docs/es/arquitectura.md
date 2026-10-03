@@ -2,91 +2,103 @@
 
 [← Volver al README](../../README.es.md) · [English](../en/architecture.md)
 
+## Módulos
+
+```
+autto-parent (pom)                    versiones, plugins, quality gates (enforcer, checkstyle, jacoco)
+├── autto-core   (jar, publicable)    el motor, empaquetado como auto-configuración de Spring Boot
+└── autto-e2e    (solo pruebas)       la suite de UNA aplicación bajo prueba (demo: saucedemo.com)
+```
+
+`autto-core` no conoce ningún negocio; `autto-e2e` no sabe nada de drivers, videos ni reportes. Una empresa publica
+`autto-core` una vez y cada equipo de producto crea su propio proyecto `<producto>-e2e` que depende de él.
+
 ## Screaming architecture
 
 > "Tu arquitectura debe contarle al lector sobre el sistema, no sobre los frameworks que usaste." — Robert C. Martin
 
-Al abrir `src/test/java/.../features` ves **qué hace el producto** (`login`, `inventory`, `checkout`), no capas
-técnicas como `pages/`, `steps/`, `models/`. Todo lo necesario para una funcionalidad de negocio vive junto:
+Dentro de `autto-e2e` ves **qué hace el producto**, no capas técnicas:
 
 ```
-features/checkout/
-├── CartPage.java          page object(s) de la funcionalidad
-├── CheckoutPage.java
-├── CheckoutSteps.java     step definitions de la funcionalidad
-└── Customer.java          modelos / builders de la funcionalidad
+autto-e2e/src/test/java/io/github/andercmd/autto/e2e/
+├── CucumberTestSuite.java             punto de entrada (suite de JUnit Platform)
+├── CucumberSpringConfiguration.java   puente Cucumber ↔ Spring
+├── E2eTestApplication.java            configuración Spring de la suite (añade aquí tus beans)
+├── shared/TestUsers.java              soporte transversal (usuarios de application.yml + secretos)
+└── features/
+    ├── login/       LoginPage, LoginSteps
+    ├── inventory/   InventoryPage, InventorySteps
+    └── checkout/    CartPage, CheckoutPage, CheckoutSteps, Customer
 
-resources/features/checkout/checkout.feature    Gherkin, mismo nombre de carpeta
-resources/testdata/checkout/...                 datos, mismo nombre de carpeta
+autto-e2e/src/test/resources/
+├── application.yml, application-<perfil>.yml
+├── features/<feature>/*.feature       mismos nombres de carpeta que el código
+└── testdata/<feature>/*.json
 ```
 
-Beneficios:
+Todo lo de una funcionalidad vive junto → alta cohesión, ownership claro (`CODEOWNERS` por carpeta), fácil de borrar.
+La reutilización entre funcionalidades es explícita (inyección por constructor de la página de otra funcionalidad).
 
-- **Cohesión**: cambiar una funcionalidad toca una sola carpeta.
-- **Ownership**: cada squad puede ser dueño de sus carpetas (`CODEOWNERS`).
-- **Escalabilidad**: cientos de funcionalidades no terminan en un único paquete `pages/` con cientos de clases.
-- **Borrar es fácil**: eliminar una funcionalidad es eliminar una carpeta.
-
-La reutilización entre funcionalidades es explícita: `CheckoutSteps` inyecta `InventoryPage` de
-`features.inventory`. El código genérico vive en `shared/` (lado de pruebas) o en el `core` del framework (lado main).
-
-## Capas
+## Capas y regla de dependencias
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│ src/test  ── QUÉ se prueba                                           │
-│   features/<feature>/*.feature   lenguaje de negocio (Gherkin)       │
-│   features/<feature>/*Steps      glue: Gherkin → page objects        │
-│   features/<feature>/*Page       UI: locators y acciones             │
-│   shared/hooks                   navegador + evidencias              │
-├──────────────────────────────────────────────────────────────────────┤
-│ src/main  ── CÓMO (core reutilizable, sin negocio)                   │
-│   config  driver  ui  media  report  data  context                   │
-├──────────────────────────────────────────────────────────────────────┤
-│ Librerías: Cucumber · JUnit Platform · Selenium · Appium · Extent    │
-└──────────────────────────────────────────────────────────────────────┘
+features (Gherkin, steps, páginas)  ──►  autto-core  ──►  Spring Boot · Cucumber · Selenium · WebDriverManager · Appium · Extent
 ```
 
-Regla de dependencias: `features` → `core` → librerías. El core nunca depende del código de pruebas.
-
-### Paquetes del core
+### Paquetes de `autto-core`
 
 | Paquete | Responsabilidad | Clases clave |
 |---|---|---|
-| `core.config` | Configuración por capas con getters tipados | `AuttoConfig`, `ConfigKeys` |
-| `core.driver` | Crea y gestiona navegadores/dispositivos por hilo | `DriverFactory`, `BrowserOptionsFactory`, `DriverManager`, `DriverSession`, `CapabilitiesParser` |
-| `core.ui` | Page object base con esperas explícitas y acciones seguras | `BasePage` |
-| `core.media` | Captura de evidencias | `Screenshots`, `VideoRecorder`, `EvidenceMode` |
-| `core.report` | Generación del reporte Extent y API pública de logging | `ExtentCucumberPlugin`, `ExtentReportManager`, `Report`, `ReportPaths` |
-| `core.data` | Datos JSON con `${placeholders}` y datos aleatorios | `TestData` |
-| `core.context` | Estado por escenario compartido entre clases de steps | `ScenarioContext` |
+| `config` | Configuración basada en Spring Boot, perfiles, `.env` | `AuttoProperties`, `AuttoSettings`, `DotEnv`, `DotEnvEnvironmentPostProcessor` |
+| `spring` | Auto-configuración (beans para los proyectos de prueba) | `AuttoAutoConfiguration` |
+| `driver` | Resolución y creación de drivers por hilo | `DriverResolver` (WDM → Selenium Manager), `DriverFactory`, `DriverManager`, `DriverSession`, `BrowserOptionsFactory`, `CapabilitiesParser` |
+| `ui` | Page object base y estereotipo | `BasePage`, `@PageObject` |
+| `cucumber` | Glue del framework | `BrowserHooks` |
+| `media` | Captura de evidencias | `Screenshots`, `VideoRecorder` |
+| `report` | Reporte Extent + API pública de logging | `ExtentCucumberPlugin`, `ExtentReportManager`, `Report`, `ReportPaths` |
+| `security` | Enmascarado de secretos | `Secrets`, `Credentials`, `MaskingMessageConverter` |
+| `data` | Datos JSON, datos aleatorios | `TestData` |
+| `context` | Estado compartido por escenario | `ScenarioContext` |
+
+## Inyección de dependencias
+
+| Bean | Scope | Lo provee |
+|---|---|---|
+| `AuttoSettings`, `AuttoProperties` | singleton | `AuttoAutoConfiguration` |
+| `ScenarioContext` | escenario | `AuttoAutoConfiguration` |
+| Clases `@PageObject` | escenario | component scan de `E2eTestApplication` |
+| Step definitions, hooks | escenario | `cucumber-spring` (glue) |
+| `TestUsers`, tus clientes de API, builders… | singleton (o escenario) | component scan |
+
+El contexto de Spring se crea una vez por ejecución y lo comparten todos los escenarios e hilos; los beans de scope
+escenario se recrean en cada escenario, por eso la ejecución en paralelo es segura.
 
 ## Flujo de ejecución
 
 ```
-mvn test
- └─ Surefire → JUnit Platform → CucumberTestSuite (@Suite, engine "cucumber")
-     ├─ ExtentCucumberPlugin  ← recibe cada evento de Cucumber (thread-safe)
-     └─ por cada escenario (opcionalmente en hilos paralelos)
-         ├─ @Before  BrowserHooks.startBrowser
-         │     DriverManager.start() → DriverFactory → local | remote | appium
-         │     VideoRecorder.start()  (si video.mode != off)
-         ├─ steps → page objects → DriverManager.driver()
-         │     @AfterStep captura (screenshot.mode)
-         └─ @After BrowserHooks.collectEvidenceAndQuit
-               URL, page source, consola, video → scenario.attach(...)
-               DriverManager.quit()
- └─ TestRunFinished → flush de Extent → target/autto-reports/index.html
+./mvnw install
+ └─ autto-e2e: Surefire → JUnit Platform → CucumberTestSuite (engine "cucumber")
+     ├─ ExtentCucumberPlugin ← cada evento de Cucumber (thread-safe), carga AuttoSettings
+     ├─ Contexto Spring (una vez) ← application.yml + perfil + .env + variables de entorno + -D
+     └─ por cada escenario (opcionalmente en paralelo)
+         ├─ @Before BrowserHooks.startBrowser
+         │     DriverFactory: local (WDM → Selenium Manager → Docker) | docker | remote | appium
+         │     VideoRecorder.start()
+         ├─ steps (beans de escenario) → páginas @PageObject → DriverManager.driver()
+         │     @AfterStep captura
+         └─ @After evidencias (URL, código fuente, consola, video) → quit
+ └─ TestRunFinished → flush de Extent → autto-e2e/target/autto-reports/index.html
 ```
 
 ## Decisiones de diseño
 
+Ver [Decisiones de arquitectura (ADR)](decisiones.md) sobre Spring Boot, WebDriverManager, secretos y multi-módulo.
+Otras decisiones:
+
 | Decisión | Motivo |
 |---|---|
-| Constantes `By` en lugar de `@FindBy` / `PageFactory` | Page objects sin estado y seguros en paralelo; sin proxies obsoletos. |
-| Las páginas obtienen el driver de forma perezosa (`DriverManager.driver()`) | PicoContainer puede crear páginas antes de que exista el navegador; un navegador por hilo. |
-| Espera implícita = 0, esperas explícitas siempre | Mezclar ambas causa timeouts impredecibles. |
-| Plugin propio de Extent en lugar del adaptador de terceros | Control total del reporte, compatible con Cucumber 8, paralelo, videos y evidencias de hooks. |
-| Video desde capturas WebDriver + JCodec | Funciona en todas partes (headless, Grid, nube, Appium) sin ffmpeg ni escritorio. |
-| Properties + variables de entorno + `-D` | Cambiar entre local, CI y nube sin tocar código; los secretos nunca se suben. |
-| PicoContainer | Inyección por constructor ligera; un grafo de objetos nuevo por escenario. |
+| Constantes `By` en lugar de `@FindBy` | Page objects sin estado y seguros en paralelo. |
+| Driver obtenido de forma perezosa (`DriverManager.driver()`) | Las páginas se crean antes que el navegador; un navegador por hilo. |
+| Espera implícita 0, esperas explícitas | Timeouts predecibles (lo exige Checkstyle). |
+| Plugin Extent propio | Control total, Cucumber 8, paralelo, videos, enmascarado. |
+| Video desde capturas WebDriver + JCodec | Funciona headless, en Docker, Grid, nube y Appium sin ffmpeg. |

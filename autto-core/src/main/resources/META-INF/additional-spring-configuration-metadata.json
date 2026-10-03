@@ -1,0 +1,43 @@
+{
+  "properties": [
+    {
+      "name": "autto.execution.capabilities",
+      "type": "java.util.Map<java.lang.String,java.lang.Object>",
+      "description": "W3C / vendor capabilities. Names with ':' work as-is, e.g. se:recordVideo: true or bstack:options: {os: Windows}."
+    },
+    {
+      "name": "autto.browser.prefs",
+      "type": "java.util.Map<java.lang.String,java.lang.Object>",
+      "description": "Browser preferences (Chromium 'prefs' / Firefox profile), e.g. intl.accept_languages: es-ES."
+    },
+    {
+      "name": "autto.report.info",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Extra rows of the report dashboard environment table."
+    },
+    {
+      "name": "autto.dotenv.path",
+      "type": "java.lang.String",
+      "description": "Explicit location of the .env file (also AUTTO_DOTENV_PATH). By default it is searched in the working directory and up to three parent folders."
+    }
+  ],
+  "hints": [
+    {
+      "name": "autto.report.theme",
+      "values": [{"value": "dark"}, {"value": "standard"}]
+    },
+    {
+      "name": "autto.browser.window-size",
+      "values": [{"value": "maximized"}, {"value": "1920x1080"}, {"value": "1366x768"}]
+    },
+    {
+      "name": "autto.appium.platform",
+      "values": [{"value": "android"}, {"value": "ios"}]
+    },
+    {
+      "name": "autto.browser.unhandled-prompt",
+      "values": [{"value": "accept"}, {"value": "dismiss"}, {"value": "accept and notify"},
+                 {"value": "dismiss and notify"}, {"value": "ignore"}]
+    }
+  ]
+}

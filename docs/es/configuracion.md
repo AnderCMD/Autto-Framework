@@ -2,141 +2,173 @@
 
 [← Volver al README](../../README.es.md) · [English](../en/configuration.md)
 
-## Orden de resolución
+La configuración vive en `autto-e2e/src/test/resources/application.yml` y se enlaza al record tipado
+`AuttoProperties`. IntelliJ IDEA y VS Code (Spring Boot tools) autocompletan cada clave `autto.*` con su descripción
+gracias a la metadata incluida en `autto-core`.
 
-Cada valor se busca en cuatro capas; gana la última:
+## Precedencia
 
-1. `src/test/resources/autto.properties` — valores por defecto del proyecto
-2. `src/test/resources/environments/<env>.properties` — valores del entorno (`env=qa` por defecto)
-3. Variables de entorno con prefijo `AUTTO_` — `browser.headless` → `AUTTO_BROWSER_HEADLESS`
-4. Propiedades del sistema de la JVM — `./mvnw test -Dbrowser.headless=true`
+De mayor a menor:
 
-Los valores vacíos se ignoran, así un `-Dbrowser=` vacío nunca borra un valor configurado. Los valores admiten
-`${placeholders}` (ver [Placeholders](#placeholders)).
+1. Propiedades del sistema JVM — `./mvnw test -Dautto.browser.name=firefox`
+2. Variables de entorno — `AUTTO_BROWSER_NAME=firefox` (relaxed binding: puntos y guiones se convierten en `_`)
+3. Archivo `.env` (ignorado por git) — ver [Secretos](secretos.md)
+4. `application-<perfil>.yml` de cada perfil activo (gana el último perfil)
+5. `application.yml`
+6. Valores por defecto de `AuttoProperties`
+
+Un valor inválido detiene la ejecución de inmediato indicando la clave, p. ej.
+`Invalid Autto configuration: ... autto.evidence.video-fps must be between 1 and 30`.
+
+## Perfiles
 
 ```bash
-# Seleccionar otro archivo de entorno
-./mvnw test -Denv=staging
-AUTTO_ENV=staging ./mvnw test
+./mvnw test -Dspring.profiles.active=staging            # un entorno
+./mvnw test -Dspring.profiles.active=qa,ci,grid         # entorno + ajustes de CI + Selenium Grid
+SPRING_PROFILES_ACTIVE=qa,docker ./mvnw test            # variable de entorno (o en .env)
 ```
 
-Crea `environments/local.properties` (ignorado por git) para tus ajustes personales y ejecuta con `-Denv=local`.
+| Perfil | Propósito |
+|---|---|
+| `qa` (por defecto) | URL del entorno QA |
+| `staging`, `prod` | Otros entornos (`prod` desactiva videos) |
+| `ci` | Navegadores headless |
+| `docker` | Navegadores en contenedores Docker desechables (WebDriverManager) |
+| `grid` | Selenium Grid (`docker compose up -d`) |
+| `browserstack` | BrowserStack (credenciales desde `.env` / secretos del CI) |
+
+Crea `application-local.yml` (ignorado por git) para tus ajustes personales y ejecuta con
+`-Dspring.profiles.active=qa,local`.
 
 ## Referencia
 
-### General
+Las duraciones aceptan `500ms`, `15s`, `5m`. Los enums aceptan `on-failure`, `ON_FAILURE`, `onFailure`.
+
+### `autto` (raíz)
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `env` | `qa` | Archivo de entorno a cargar desde `environments/`. |
-| `base.url` | — | URL base que usa `BasePage.open("/ruta")`. |
+| `autto.base-url` | — | URL base que usa `BasePage.open("/ruta")`. |
 
-### Navegador
-
-| Clave | Por defecto | Descripción |
-|---|---|---|
-| `browser` | `chrome` | `chrome`, `firefox`, `edge`, `safari`. |
-| `browser.version` | instalado | Versión exacta o canal (`stable`, `beta`, `dev`, `canary`). Selenium Manager la descarga si hace falta. |
-| `browser.headless` | `false` | Modo headless (Safari lo ignora). |
-| `browser.window.size` | `1920x1080` | `maximized` o `<ancho>x<alto>`. |
-| `browser.args` | — | Argumentos extra de línea de comandos, separados por comas. |
-| `browser.binary` | — | Binario propio del navegador (Chromium, Brave, Firefox Developer Edition…). |
-| `browser.incognito` | `false` | Ventana privada/incógnito. |
-| `browser.mobile.emulation` | — | Emulación de dispositivo en Chromium, p. ej. `iPhone 14 Pro Max`, `Pixel 7`. |
-| `browser.accept.insecure.certs` | `true` | Aceptar certificados autofirmados. |
-| `browser.page.load.strategy` | `normal` | `normal`, `eager`, `none`. |
-| `browser.download.dir` | `target/downloads` | Carpeta de descargas (Chromium y Firefox). |
-| `browser.unhandled.prompt` | `ignore` si hay video | `accept`, `dismiss`, `accept and notify`, `dismiss and notify`, `ignore`. |
-| `browser.console.logs` | `true` | Recoger mensajes de consola y errores JS vía WebDriver BiDi y adjuntarlos si falla. |
-| `browser.prefs.<nombre>` | — | Preferencias del navegador (Chromium `prefs` / perfil de Firefox), p. ej. `browser.prefs.intl.accept_languages=es-ES`. |
-
-### Destino de ejecución
+### `autto.browser`
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `execution.target` | `local` | `local`, `remote` (Grid / nube) o `appium`. |
-| `remote.url` | `http://localhost:4444` | URL del Selenium Grid o del hub del proveedor. Las credenciales de la URL se ocultan en logs. |
-| `platform.name` | — | SO solicitado en sesiones remotas (`Windows 11`, `macOS 15`, `linux`). |
-| `capabilities.<nombre>` | — | Cualquier capability W3C / de proveedor, ver abajo. |
-| `appium.url` | `http://127.0.0.1:4723` | Servidor Appium. |
-| `appium.platform` | `android` | `android` o `ios`. |
-| `appium.app` | — | Ruta o URL del `.apk` / `.ipa` / `.app`. Omítelo para web móvil. |
+| `name` | `chrome` | `chrome`, `chromium`, `firefox`, `edge`, `safari`. |
+| `version` | instalado | Versión exacta o canal (`stable`, `beta`, `dev`, `canary`); usa Selenium Manager, que puede descargarlo. |
+| `headless` | `false` | Modo headless (Safari lo ignora). |
+| `window-size` | `1920x1080` | `maximized` o `<ancho>x<alto>`. |
+| `args` | `[]` | Argumentos extra de línea de comandos. |
+| `binary` | — | Ejecutable propio (Brave, builds de Chromium, Firefox Developer Edition…). |
+| `incognito` | `false` | Ventana privada / incógnito. |
+| `mobile-emulation` | — | Emulación de dispositivo en Chromium, p. ej. `iPhone 14 Pro Max`. |
+| `accept-insecure-certs` | `true` | Aceptar certificados autofirmados. |
+| `page-load-strategy` | `normal` | `normal`, `eager`, `none`. |
+| `download-dir` | `target/downloads` | Carpeta de descargas (Chromium y Firefox). |
+| `unhandled-prompt` | `ignore` mientras se graba | `accept`, `dismiss`, `accept and notify`, `dismiss and notify`, `ignore`. |
+| `console-logs` | `true` | Recoger mensajes de consola y errores JavaScript (WebDriver BiDi), adjuntos al fallar. |
+| `prefs.<nombre>` | — | Preferencias del navegador, p. ej. `intl.accept_languages: es-ES`. |
 
-#### Capabilities
+### `autto.driver`
 
-Las claves planas se convierten en JSON anidado. Los valores se convierten a booleanos/números salvo que vayan entre
-comillas; `[a,b]` es una lista.
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `resolution` | `webdrivermanager` | `webdrivermanager` o `selenium-manager`. |
+| `fallback` | `true` | Usar Selenium Manager cuando WebDriverManager falla. |
+| `docker-fallback` | `false` | Arrancar el navegador en Docker si no está instalado (requiere Docker). |
+| `cache-path` | `~/.cache/selenium` | Caché de drivers de WebDriverManager. |
 
-```properties
-capabilities.se:recordVideo=true
-capabilities.bstack:options.os=Windows
-capabilities.bstack:options.osVersion="11"
-capabilities.goog:chromeOptions.args=[--lang=es]
-capabilities.appium:deviceName=Pixel 8
+WebDriverManager también lee sus propias propiedades `wdm.*` / variables `WDM_*` (proxy, mirrors, timeouts), p. ej.
+`-Dwdm.proxy=proxy.empresa.com:8080`.
+
+### `autto.execution`
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `target` | `local` | `local`, `docker`, `remote` (Grid / nube) o `appium`. |
+| `remote-url` | `http://localhost:4444` | Grid o hub del proveedor. Las credenciales de la URL se ocultan en logs y reportes. |
+| `platform-name` | — | SO solicitado en sesiones remotas (`Windows 11`, `macOS 15`, `linux`). |
+| `capabilities` | `{}` | Cualquier capability W3C / de proveedor (ver abajo). |
+
+```yaml
+autto:
+  execution:
+    capabilities:
+      se:recordVideo: true              # los nombres con ':' funcionan tal cual ("[se:recordVideo]" también vale)
+      bstack:options:
+        os: Windows
+        osVersion: '"11"'               # las comillas internas lo mantienen como texto
+      goog:chromeOptions:
+        args: [--lang=es]
 ```
 
-#### Placeholders
-
-Cualquier valor puede referenciar otra clave o una variable de entorno con `${NOMBRE}` o `${NOMBRE:por_defecto}`.
-Así las credenciales nunca entran al repositorio:
-
-```properties
-remote.url=https://${BROWSERSTACK_USERNAME}:${BROWSERSTACK_ACCESS_KEY}@hub-cloud.browserstack.com/wd/hub
-capabilities.bstack:options.buildName=${GITHUB_RUN_ID:local-build}
-```
-
-Un placeholder sin valor por defecto que no puede resolverse falla con un mensaje claro al leer la clave.
-
-### Timeouts (segundos)
+### `autto.docker` (target `docker`)
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `timeouts.implicit` | `0` | Espera implícita. Mantenla en 0; el framework usa esperas explícitas. |
-| `timeouts.explicit` | `15` | Espera explícita por defecto de `BasePage`. |
-| `timeouts.page.load` | `60` | Timeout de carga de página. |
-| `timeouts.script` | `30` | Timeout de scripts asíncronos. |
-| `timeouts.polling.ms` | `250` | Intervalo de sondeo de las esperas explícitas (milisegundos). |
+| `vnc` | `false` | Expone una URL noVNC (aparece en el log) para ver el navegador. |
+| `screen-resolution` | `1920x1080x24` | Pantalla virtual. |
+| `shm-size` | `2g` | Memoria compartida del contenedor. |
 
-### Evidencias
+### `autto.appium` (target `appium`)
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `screenshot.mode` | `on_failure` | `off`, `on_failure`, `always` (después de cada step). |
-| `video.mode` | `on_failure` | `off`, `on_failure` (se graba siempre, se conserva solo si falla), `always`. |
-| `video.fps` | `3` | Fotogramas por segundo (1–30). Más fps implica más llamadas WebDriver. |
-| `video.max.seconds` | `300` | Solo se conservan los últimos N segundos del escenario. |
-| `video.max.width` | `1280` | Los fotogramas se reducen a este ancho. |
-| `evidence.page.source` | `true` | Adjuntar el HTML de la página cuando falla un escenario. |
+| `url` | `http://127.0.0.1:4723` | Servidor Appium. |
+| `platform` | `android` | `android` o `ios`. |
+| `app` | — | Ruta o URL del `.apk` / `.ipa` / `.app`. Omítelo para web móvil. |
 
-### Reporte
+### `autto.timeouts`
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `report.dir` | `target/autto-reports` | Carpeta de salida del reporte Extent y las evidencias. |
-| `report.timestamped` | `false` | Una subcarpeta por ejecución (`yyyyMMdd-HHmmss`) para conservar historial. |
-| `report.title` | `Autto · Test Automation Report` | Título de la pestaña del navegador. |
-| `report.name` | `Autto Framework · Execution report` | Nombre mostrado en la cabecera. |
-| `report.theme` | `dark` | `dark` o `standard`. |
-| `report.offline` | `true` | Copia los recursos del reporte para abrirlo sin internet. |
-| `report.timeline` | `true` | Gráfico de línea de tiempo en el dashboard. |
-| `report.screenshots.base64` | `false` | Incrusta las capturas en el HTML (archivo único portable, más pesado). |
-| `report.author` | — | Autor por defecto cuando un escenario no tiene tag `@author:<nombre>`. |
-| `report.show.host` | `true` | Mostrar usuario y nombre del equipo en el dashboard. |
-| `report.info.<etiqueta>` | — | Filas extra para la tabla de entorno del dashboard. |
+| `implicit` | `0s` | Mantenla en 0: el framework usa esperas explícitas. |
+| `explicit` | `15s` | Espera explícita por defecto de `BasePage`. |
+| `page-load` | `60s` | Timeout de carga de página. |
+| `script` | `30s` | Timeout de scripts asíncronos. |
+| `polling` | `250ms` | Intervalo de sondeo de las esperas explícitas. |
+
+### `autto.evidence`
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `screenshot` | `on-failure` | `off`, `on-failure`, `always` (después de cada step). |
+| `video` | `on-failure` | `off`, `on-failure` (siempre se graba, se conserva solo si falla), `always`. |
+| `video-fps` | `3` | 1–30. |
+| `video-max-duration` | `5m` | Solo se conserva la parte final de escenarios largos. |
+| `video-max-width` | `1280` | Los fotogramas se reducen a este ancho. |
+| `page-source` | `true` | Adjuntar el HTML de la página cuando falla un escenario. |
+
+### `autto.report`
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `dir` | `target/autto-reports` | Carpeta de salida (relativa al módulo). |
+| `timestamped` | `false` | Una subcarpeta por ejecución. |
+| `title` / `name` | Autto… | Título de la pestaña / nombre en la cabecera. |
+| `theme` | `dark` | `dark` o `standard`. |
+| `offline` | `true` | Copia los recursos para abrir el reporte sin internet. |
+| `timeline` | `true` | Gráfico de línea de tiempo. |
+| `screenshots-base64` | `false` | Incrustar las capturas en el HTML. |
+| `author` | — | Autor por defecto si el escenario no tiene tag `@author:<nombre>`. |
+| `show-host` | `true` | Mostrar usuario y equipo en el dashboard. |
+| `info.<etiqueta>` | — | Filas extra del dashboard. |
 
 ### Cucumber (`junit-platform.properties`)
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
 | `cucumber.filter.tags` | `not @wip and not @ignore and not @demo-failure` | Expresión de tags. |
-| `cucumber.features` | — | Sobrescribe las features seleccionadas, p. ej. `classpath:features/login`. |
-| `cucumber.glue` | `io.github.andercmd.autto` | Paquetes donde se buscan steps y hooks. |
-| `cucumber.plugin` | Extent + HTML + JSON + JUnit + NDJSON + rerun | Plugins de reporte. |
-| `cucumber.execution.parallel.enabled` | `false` | Ejecutar escenarios en paralelo. |
-| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Hilos en paralelo. |
+| `cucumber.features` | — | Sobrescribe las features (`classpath:features/login`, `@target/autto-reports/rerun.txt`). |
+| `cucumber.glue` | `io.github.andercmd.autto.e2e,io.github.andercmd.autto.core.cucumber` | Steps + hooks del framework. |
+| `cucumber.execution.parallel.enabled` | `false` | Escenarios en paralelo. |
+| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Hilos. |
 
-### Logging
+### Otros
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
-| `autto.log.level` | `INFO` | Nivel de log del framework y de las clases de prueba (`DEBUG` muestra cada clic/escritura). |
+| `autto.dotenv.path` / `AUTTO_DOTENV_PATH` | automático | Ubicación explícita del `.env`. |
+| `autto.log.level` | `INFO` | Nivel de log del framework y las pruebas (`DEBUG` traza cada interacción). |
+| `autto.ignoreFailures` | `false` | Mantener el build en verde aunque fallen escenarios. |
+| `checkstyle.skip` | `false` | Saltar el estándar de código (no recomendado). |

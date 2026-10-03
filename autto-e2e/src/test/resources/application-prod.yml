@@ -1,0 +1,5 @@
+# Production: read-only smoke tests only, no videos
+autto:
+  base-url: https://www.saucedemo.com
+  evidence:
+    video: off

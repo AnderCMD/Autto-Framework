@@ -2,24 +2,24 @@
 
 [← Volver al README](../../README.es.md) · [English](../en/ci-cd.md)
 
-La suite es un build de Maven normal, así que funciona en cualquier CI. Puntos clave:
+Puntos clave para cualquier CI:
 
-- Usa `./mvnw` (no hace falta instalar Maven).
-- Ejecuta en headless: `-Dbrowser.headless=true`.
-- Publica siempre `target/autto-reports/` como artefacto, también cuando el build falla.
-- Pasa los secretos como variables de entorno (`AUTTO_*` o nombres usados en `${placeholders}`).
+- Usa `./mvnw` (no hace falta instalar Maven) y `SPRING_PROFILES_ACTIVE=<entorno>,ci` (headless).
+- Proporciona los secretos como **secretos del pipeline** con los mismos nombres que en `.env.example`.
+- Publica **siempre** `autto-e2e/target/autto-reports/` como artefacto, también cuando el build falla.
 
 ## GitHub Actions (incluido)
 
-| Workflow | Disparador | Qué hace |
+| Workflow | Disparador | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | push a `main`, pull requests, manual | Tests unitarios + chequeo del reporte sin navegador; después `@smoke` en Windows, macOS y Linux × Chrome, Firefox, Edge (+ Safari en macOS). |
-| `.github/workflows/nightly.yml` | cada noche, manual | Levanta el Selenium Grid de Docker y ejecuta `@regression` en paralelo para cada navegador. |
+| `ci.yml` | push a `main`, pull requests, manual | **Secret scanning** (gitleaks, todo el historial) · **Build** (enforcer, checkstyle, tests unitarios, escenarios sin navegador) · **Matriz E2E** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
+| `nightly.yml` | cada noche, manual | `@regression` contra el Selenium Grid de Docker (en paralelo) y con navegadores Docker de WebDriverManager |
+
+Secreto requerido: `SAUCE_PASSWORD` (*Settings → Secrets and variables → Actions*). El workflow demo usa como
+respaldo la contraseña pública de la demo; elimina ese respaldo en una aplicación real.
 
 JDK 27 se instala con `oracle-actions/setup-java` desde jdk.java.net (builds Early Access hasta la GA de marzo de
-2027). Para usar otra versión cambia `JAVA_RELEASE` en el workflow y pasa `-Djava.version=<n>`.
-
-Las ejecuciones manuales aceptan una expresión de tags (*Actions → CI → Run workflow*).
+2027). Para otro JDK cambia `JAVA_RELEASE` y añade `-Djava.version=<n>` a los comandos Maven.
 
 ## Jenkins
 
@@ -29,66 +29,80 @@ pipeline {
     tools { jdk 'jdk-27' }
     parameters {
         choice(name: 'BROWSER', choices: ['chrome', 'firefox', 'edge'])
+        choice(name: 'ENV', choices: ['qa', 'staging'])
         string(name: 'TAGS', defaultValue: '@smoke')
+    }
+    environment {
+        SPRING_PROFILES_ACTIVE = "${params.ENV},ci"
+        AUTTO_BROWSER_NAME = "${params.BROWSER}"
     }
     stages {
         stage('Test') {
             steps {
-                sh "./mvnw -B test -Dbrowser=${params.BROWSER} -Dbrowser.headless=true -Dcucumber.filter.tags='${params.TAGS}' -Dautto.ignoreFailures=true"
+                withCredentials([string(credentialsId: 'sauce-password', variable: 'SAUCE_PASSWORD')]) {
+                    sh "./mvnw -B install -Dcucumber.filter.tags='${params.TAGS}' -Dautto.ignoreFailures=true"
+                }
             }
         }
     }
     post {
         always {
-            junit 'target/autto-reports/cucumber/cucumber-junit.xml'
-            publishHTML(target: [reportDir: 'target/autto-reports', reportFiles: 'index.html',
+            junit 'autto-e2e/target/autto-reports/cucumber/cucumber-junit.xml'
+            publishHTML(target: [reportDir: 'autto-e2e/target/autto-reports', reportFiles: 'index.html',
                                  reportName: 'Autto report', keepAll: true, alwaysLinkToLastBuild: true])
-            archiveArtifacts artifacts: 'target/autto-reports/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'autto-e2e/target/autto-reports/**', allowEmptyArchive: true
         }
     }
 }
 ```
 
-> La Content Security Policy por defecto de Jenkins bloquea los scripts del reporte. Relájala para el plugin HTML
-> Publisher o descarga la carpeta archivada.
+> La Content Security Policy por defecto de Jenkins bloquea los scripts del reporte; relájala para HTML Publisher o
+> descarga la carpeta archivada.
 
 ## GitLab CI
 
 ```yaml
 e2e:
-  image: maven:3-eclipse-temurin-25   # usa una imagen con JDK 27 cuando exista y quita -Djava.version
+  image: maven:3-eclipse-temurin-25          # cambia a una imagen con JDK 27 cuando exista y quita -Djava.version
   services:
     - name: selenium/standalone-chrome:latest
       alias: selenium
   variables:
-    AUTTO_EXECUTION_TARGET: remote
-    AUTTO_REMOTE_URL: http://selenium:4444
+    SPRING_PROFILES_ACTIVE: qa,ci,grid
+    SELENIUM_GRID_URL: http://selenium:4444
+    # SAUCE_PASSWORD: definida en Settings → CI/CD → Variables (masked, protected)
   script:
-    - ./mvnw -B test -Djava.version=25 -Dcucumber.filter.tags="@smoke"
+    - ./mvnw -B install -Djava.version=25 -Dcucumber.filter.tags="@smoke"
   artifacts:
     when: always
-    paths: [target/autto-reports/]
+    paths: [autto-e2e/target/autto-reports/]
     reports:
-      junit: target/autto-reports/cucumber/cucumber-junit.xml
+      junit: autto-e2e/target/autto-reports/cucumber/cucumber-junit.xml
 ```
 
 ## Azure DevOps
 
 ```yaml
+variables:
+  - group: autto-secrets            # contiene SAUCE_PASSWORD (o enlázalo a Azure Key Vault)
 steps:
-  - script: ./mvnw -B test -Dbrowser.headless=true -Dautto.ignoreFailures=true
+  - script: ./mvnw -B install -Dautto.ignoreFailures=true
+    env:
+      SPRING_PROFILES_ACTIVE: qa,ci
+      SAUCE_PASSWORD: $(SAUCE_PASSWORD)
   - task: PublishTestResults@2
     condition: always()
     inputs:
-      testResultsFiles: target/autto-reports/cucumber/cucumber-junit.xml
+      testResultsFiles: autto-e2e/target/autto-reports/cucumber/cucumber-junit.xml
   - task: PublishPipelineArtifact@1
     condition: always()
     inputs:
-      targetPath: target/autto-reports
+      targetPath: autto-e2e/target/autto-reports
       artifact: autto-report
 ```
 
-## Publicar el reporte en GitHub Pages
+## Publicar `autto-core` para otros equipos
 
-Añade un job después de las pruebas que suba `target/autto-reports` con `actions/upload-pages-artifact` y lo
-despliegue con `actions/deploy-pages`. El reporte es HTML estático y funciona tal cual.
+`autto-core` es un artefacto Maven normal. Añade una sección `distributionManagement` (Nexus, Artifactory, GitHub
+Packages) al POM padre y ejecuta `./mvnw -pl autto-core deploy`. Los equipos de producto dependen de
+`io.github.andercmd:autto-core:<versión>` y solo mantienen su módulo `*-e2e`.

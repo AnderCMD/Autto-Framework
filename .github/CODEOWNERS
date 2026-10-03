@@ -1,0 +1,6 @@
+# Default owners. In a company, map each feature folder to the squad that owns it, e.g.:
+#   /autto-e2e/src/test/java/io/github/andercmd/autto/e2e/features/checkout/  @org/payments-qa
+#   /autto-e2e/src/test/resources/features/checkout/                          @org/payments-qa
+*                @AnderCMD
+/autto-core/     @AnderCMD
+/.github/        @AnderCMD

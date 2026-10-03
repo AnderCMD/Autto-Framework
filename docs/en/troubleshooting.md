@@ -4,59 +4,64 @@
 
 ### `Autto targets Java 27...` (Maven Enforcer)
 
-Your JDK is older than `java.version`. Install JDK 27 (Early Access until March 2027) or build with
-`-Djava.version=25` (any value ≥ 21). Make it permanent in `.mvn/maven.config`.
+Your JDK is older than `java.version`. Install JDK 27 (Early Access until March 2027) or add `-Djava.version=25`
+(any value ≥ 21), permanently in `.mvn/maven.config`.
 
-### `SessionNotCreatedException: ... user data directory is already in use` / Chrome crashes on Linux
+### `The password of test user 'standard' is not available`
 
-Usually Chrome cannot start its sandbox (running as root or inside a container). The framework adds
-`--no-sandbox --disable-dev-shm-usage` automatically when running as root, in CI (`CI` variable) or in Docker. In
-other cases add them with `-Dbrowser.args=--no-sandbox,--disable-dev-shm-usage`.
+The secret is missing: `cp .env.example .env` and fill it in, or define the environment variable / CI secret
+(`SAUCE_PASSWORD`). The log line `Autto configuration loaded · profiles [...] · .env <path>` shows which `.env` was
+used.
 
-### `This version of ChromeDriver only supports Chrome version N`
+### `Invalid Autto configuration: ...`
 
-A driver found in the `PATH` (or `webdriver.chrome.driver`) does not match the browser. Remove it and let Selenium
-Manager resolve the right one, or pin a browser with `-Dbrowser.version=<version>`.
+A value in `application*.yml`, `.env`, an `AUTTO_*` variable or a `-D` property has the wrong type or range. The
+message names the key.
 
-### Selenium Manager cannot download drivers (corporate proxy / offline)
+### `WebDriverManager could not resolve the driver ... Falling back to Selenium Manager`
 
-Set the standard `HTTPS_PROXY` variable, or provide drivers manually with
-`-Dwebdriver.chrome.driver=/path/chromedriver` (`webdriver.gecko.driver`, `webdriver.edge.driver`).
+WebDriverManager could not reach its metadata URLs (proxy, firewall, offline). The run continues with Selenium
+Manager. Configure the proxy (`-Dwdm.proxy=host:port`) or a mirror, or set
+`autto.driver.resolution=selenium-manager` to skip WebDriverManager.
 
-### Safari: `Could not create a session: You must enable 'Allow remote automation'`
+### The browser is not installed
 
-Run `safaridriver --enable` once (macOS asks for your password) and enable *Develop → Allow Remote Automation*.
+- Set `autto.driver.docker-fallback=true` (Docker required), or
+- use the `docker` profile, or
+- request a version (`-Dautto.browser.version=stable`): Selenium Manager downloads Chrome/Firefox.
 
-### Scenarios are reported twice / not found
+### Chrome crashes on Linux / `user data directory is already in use`
 
-- Run through `CucumberTestSuite` (`./mvnw test`); the pom excludes direct discovery by the Cucumber engine.
-- Feature files must be under `src/test/resources/features/`.
-- Step classes must be under the `cucumber.glue` package (`io.github.andercmd.autto`). After renaming the package,
-  update `cucumber.glue` in `junit-platform.properties`.
+Chrome cannot start its sandbox (root or container). The framework adds `--no-sandbox --disable-dev-shm-usage`
+when running as root, in CI or in Docker; otherwise add them to `autto.browser.args`.
+
+### Safari: `You must enable 'Allow remote automation'`
+
+Run `safaridriver --enable` once and enable *Develop → Allow Remote Automation*.
+
+### `No qualifying bean of type ...` / `Could not find @CucumberContextConfiguration`
+
+- Pages must be annotated with `@PageObject` (or `@Component`) and live under the package of
+  `E2eTestApplication`.
+- Exactly one class annotated with `@CucumberContextConfiguration` must be in the glue path.
+- `cucumber.glue` must contain your package and `io.github.andercmd.autto.core.cucumber`.
 
 ### `No browser is running on thread ...`
 
-A page object was used in a scenario tagged `@nobrowser`, or outside a scenario. Remove the tag or start a browser
-with `DriverManager.start()`.
+A page object was used in a `@nobrowser` scenario or outside a scenario. Remove the tag or call
+`DriverManager.start()`.
 
-### Video does not play in the report
+### Checkstyle fails the build
 
-- Open-source Chromium does not ship the H.264 codec; use Chrome/Edge/Firefox/Safari or the *Download video* link.
-- Videos are only kept for failed scenarios by default (`video.mode=on_failure`).
+Read the reported rule: line length (120), unused imports, `Thread.sleep`, `System.out`, implicit waits... Fix the
+code; `-Dcheckstyle.skip` exists only for emergencies.
 
-### Alerts disappear unexpectedly
+### Video does not play
 
-With video recording on, background screenshots could dismiss alerts, so `browser.unhandled.prompt` defaults to
-`ignore`. If you changed it, set it back or disable video for those scenarios.
+Open-source Chromium lacks the H.264 codec: use Chrome/Edge/Firefox/Safari or *Download video*. Videos are kept only
+for failed scenarios by default.
 
-### Tests are flaky
+### Flaky tests
 
-- Never use `Thread.sleep`; use `BasePage` waits (`visible`, `clickable`, `waitUntil`) or Awaitility.
-- Keep `timeouts.implicit=0`.
-- Make scenarios independent and create their own data.
-- Re-run the failures with `-Dcucumber.features=@target/autto-reports/rerun.txt` to tell flaky from broken.
-
-### The Maven build fails although the report is fine
-
-Failing scenarios fail the build on purpose. Use `-Dautto.ignoreFailures=true` when a pipeline step must continue
-(e.g. to publish reports), and read the result from the JUnit XML.
+No `Thread.sleep` (blocked by Checkstyle), keep `autto.timeouts.implicit=0s`, make scenarios independent and
+re-run failures with `-Dcucumber.features=@target/autto-reports/rerun.txt` to tell flaky from broken.

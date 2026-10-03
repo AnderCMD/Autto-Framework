@@ -7,51 +7,40 @@
 | Herramienta | Versión | Notas |
 |---|---|---|
 | JDK | 27 (o ≥ 21 con `-Djava.version=<n>`) | Java 27 GA está prevista para marzo de 2027. Mientras tanto usa una [build Early Access](https://jdk.java.net/27/). |
-| Maven | no requerido | El Maven Wrapper incluido (`./mvnw`, `mvnw.cmd`) descarga Maven 3.9.16. |
-| Navegador | Chrome, Firefox, Edge o Safari | Selenium Manager resuelve los drivers automáticamente y puede descargar Chrome/Firefox si faltan. |
-| Docker | opcional | Solo para el Selenium Grid local (`docker compose up`). |
-| Appium 2+ | opcional | Solo para móvil (`execution.target=appium`). |
-
-Comprueba tu entorno:
-
-```bash
-java -version
-./mvnw -v          # Windows: mvnw.cmd -v
-```
+| Maven | no requerido | El Maven Wrapper (`./mvnw`, `mvnw.cmd`) descarga Maven 3.9.16. |
+| Navegador | Chrome, Chromium, Firefox, Edge o Safari | Los drivers se resuelven solos (WebDriverManager → Selenium Manager). |
+| Docker | opcional | Navegadores en contenedores (perfil `docker`) o Selenium Grid local. |
+| Appium 2+ | opcional | Móvil (`autto.execution.target=appium`). |
 
 ## Primera ejecución
 
 ```bash
-# 1. Tests unitarios del framework (sin navegador, unos segundos)
-./mvnw -Punit test
+git clone https://github.com/AnderCMD/Autto-Framework.git
+cd Autto-Framework
 
-# 2. Pipeline de reportes sin navegador
-./mvnw test -Dcucumber.filter.tags=@showcase
+# 1. Secretos: crea tu .env local (ignorado por git)
+cp .env.example .env                       # Windows: copy .env.example .env
+#    y define SAUCE_PASSWORD=secret_sauce (contraseña pública de la tienda demo)
+
+# 2. Build + tests unitarios del framework + chequeo del reporte sin navegador
+./mvnw verify -Dcucumber.filter.tags=@showcase
 
 # 3. Suite completa con Chrome
-./mvnw test
+./mvnw install
 ```
 
-Los reportes se generan en `target/autto-reports/`:
+Abre **`autto-e2e/target/autto-reports/index.html`**.
 
-| Archivo | Contenido |
-|---|---|
-| `index.html` | Reporte Extent Spark (abre este) |
-| `failed.html` | El mismo reporte, solo fallos y advertencias |
-| `cucumber/cucumber.html` | Reporte HTML nativo de Cucumber |
-| `cucumber/cucumber.json`, `cucumber-junit.xml`, `cucumber.ndjson` | Salidas para herramientas de CI |
-| `rerun.txt` | Escenarios fallidos, para re-ejecutarlos |
-| `logs/autto.log` | Log completo de la ejecución |
+> `./mvnw install` construye `autto-core` y luego ejecuta la suite. Para ejecutar solo la suite cuando el core ya
+> está instalado: `./mvnw -pl autto-e2e test`.
 
 ## Compilar con un JDK anterior a 27
 
-La propiedad `java.version` controla `--release` y la regla del Maven Enforcer:
-
 ```bash
-./mvnw test -Djava.version=25
+./mvnw install -Djava.version=25
 ```
 
-Para hacerlo permanente en tu máquina, añádelo a `.mvn/maven.config` (crea el archivo):
+Hazlo permanente en tu máquina con `.mvn/maven.config` (no lo subas si tu equipo usa JDK 27):
 
 ```
 -Djava.version=25
@@ -61,31 +50,30 @@ Para hacerlo permanente en tu máquina, añádelo a `.mvn/maven.config` (crea el
 
 ### IntelliJ IDEA
 
-1. *File → Open* y selecciona `pom.xml` (abrir como proyecto).
-2. Instala los plugins **Cucumber for Java** y **Gherkin**.
-3. Ejecuta `CucumberTestSuite` o haz clic derecho en un `.feature` → *Run*.
-   Para ejecutar archivos `.feature`, define el glue `io.github.andercmd.autto` en la plantilla de configuración.
+1. *File → Open* → el `pom.xml` raíz (abrir como proyecto).
+2. Plugins: **Cucumber for Java**, **Gherkin**, **Spring** (Ultimate) o **Spring Boot Assistant** (Community) para
+   autocompletar `application.yml`.
+3. El estilo de código se toma de `.editorconfig` automáticamente.
+4. Ejecuta `CucumberTestSuite`, o clic derecho en un `.feature` → *Run* (define el glue
+   `io.github.andercmd.autto.e2e io.github.andercmd.autto.core.cucumber` en la plantilla de Cucumber).
+5. IntelliJ lee el `.env` a través del propio framework, sin plugins.
 
 ### VS Code
 
-1. Instala *Extension Pack for Java* y *Cucumber (Gherkin) Full Support*.
-2. Añade a `.vscode/settings.json`:
+Extensiones: *Extension Pack for Java*, *Spring Boot Extension Pack*, *Cucumber (Gherkin) Full Support*.
 
 ```json
 {
-  "cucumberautocomplete.steps": ["src/test/java/**/*.java"],
-  "cucumberautocomplete.syncfeatures": "src/test/resources/features/**/*.feature"
+  "cucumberautocomplete.steps": ["autto-e2e/src/test/java/**/*.java"],
+  "cucumberautocomplete.syncfeatures": "autto-e2e/src/test/resources/features/**/*.feature"
 }
 ```
 
-### Eclipse
-
-Importa como *Existing Maven Project* e instala *Cucumber Eclipse Plugin* desde el marketplace.
-
 ## Hazlo tuyo
 
-1. Renombra el paquete `io.github.andercmd.autto` (refactor del IDE) y actualiza `groupId` / `artifactId` en
-   `pom.xml` y `cucumber.glue` en `junit-platform.properties`.
-2. Define `base.url` en `src/test/resources/environments/*.properties`.
-3. Borra las carpetas de demo dentro de `features/` (conserva `showcase` si quieres un chequeo sin navegador).
-4. Crea tu primera funcionalidad: ver [Escribir pruebas](escribir-pruebas.md).
+1. Renombra los paquetes `io.github.andercmd.autto` y el `groupId` de los POM. Actualiza `cucumber.glue`.
+2. Renombra `autto-e2e` con el nombre de tu aplicación (`tienda-e2e`) y define `autto.base-url` en
+   `application-<entorno>.yml`.
+3. Sustituye las carpetas demo `features/*` y `test-data.users` por las tuyas.
+4. Pon los nombres de tus secretos en `.env.example` (sin valores) y los valores en el almacén de secretos del CI.
+5. Opcional: `pre-commit install` para escanear secretos antes de cada commit.

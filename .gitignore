@@ -6,9 +6,11 @@ reports-history/
 # Maven wrapper binaries (downloaded on demand)
 .mvn/wrapper/maven-wrapper.jar
 
-# Local configuration overrides (never commit secrets)
-src/test/resources/environments/local.properties
+# Local secrets and overrides (never commit them; .env.example is the template)
 .env
+.env.*
+!.env.example
+**/application-local.yml
 
 # IDEs
 .idea/
