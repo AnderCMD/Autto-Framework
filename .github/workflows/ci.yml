@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: Cucumber tag expression for the end-to-end matrix
+        default: "@smoke"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_RELEASE: "27"
+  MAVEN_ARGS: -B -ntp
+
+jobs:
+  framework:
+    name: Framework checks (unit tests + report pipeline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK ${{ env.JAVA_RELEASE }}
+        uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: ${{ env.JAVA_RELEASE }}
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-
+
+      - name: Unit tests
+        run: ./mvnw -Punit test
+
+      - name: Report pipeline (no browser)
+        run: ./mvnw test -Dcucumber.filter.tags=@showcase
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autto-report-showcase
+          path: target/autto-reports
+          retention-days: 14
+
+  e2e:
+    name: E2E · ${{ matrix.os }} · ${{ matrix.browser }}
+    needs: framework
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        browser: [chrome, firefox, edge]
+        include:
+          - os: macos-latest
+            browser: safari
+            experimental: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK ${{ env.JAVA_RELEASE }}
+        uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: ${{ env.JAVA_RELEASE }}
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-
+
+      - name: Enable safaridriver
+        if: matrix.browser == 'safari'
+        run: sudo safaridriver --enable
+
+      - name: Run scenarios
+        shell: bash
+        run: >
+          ./mvnw test
+          -Dbrowser=${{ matrix.browser }}
+          -Dbrowser.headless=${{ matrix.browser != 'safari' }}
+          -Dcucumber.filter.tags="${{ github.event.inputs.tags || '@smoke' }}"
+          -Dreport.info.Runner="${{ matrix.os }}"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autto-report-${{ matrix.os }}-${{ matrix.browser }}
+          path: target/autto-reports
+          retention-days: 14

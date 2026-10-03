@@ -1,0 +1,50 @@
+name: Nightly regression
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Regression · Selenium Grid · ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, edge]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: "27"
+
+      - name: Start Selenium Grid
+        run: docker compose up -d --wait
+
+      - name: Run regression in parallel against the grid
+        run: >
+          ./mvnw -B -ntp test
+          -Dexecution.target=remote
+          -Dremote.url=http://localhost:4444
+          -Dbrowser=${{ matrix.browser }}
+          -Dcucumber.filter.tags="@regression"
+          -Dcucumber.execution.parallel.enabled=true
+          -Dcucumber.execution.parallel.config.fixed.parallelism=2
+
+      - name: Stop Selenium Grid
+        if: always()
+        run: docker compose down
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autto-nightly-${{ matrix.browser }}
+          path: target/autto-reports
+          retention-days: 30

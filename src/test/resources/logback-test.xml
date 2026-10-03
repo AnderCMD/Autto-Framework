@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_DIR" value="${report.dir:-target/autto-reports}/logs"/>
+    <property name="PATTERN" value="%d{HH:mm:ss.SSS} %-5level [%thread] [%X{scenario:-}] %logger{24} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{24}) - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_DIR}/autto.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Quiet down noisy libraries -->
+    <logger name="org.openqa.selenium" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="org.asynchttpclient" level="WARN"/>
+    <logger name="io.appium" level="WARN"/>
+    <logger name="org.jcodec" level="WARN"/>
+
+    <logger name="io.github.andercmd.autto" level="${autto.log.level:-INFO}"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation (English)
+    url: https://github.com/AnderCMD/Autto-Framework/tree/main/docs/en
+    about: Read the guides before opening an issue.
+  - name: Documentación (Español)
+    url: https://github.com/AnderCMD/Autto-Framework/tree/main/docs/es
+    about: Lee las guías antes de abrir un issue.

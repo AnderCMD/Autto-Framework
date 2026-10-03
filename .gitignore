@@ -1,0 +1,26 @@
+# Build output and reports
+target/
+reports-history/
+*.log
+
+# Maven wrapper binaries (downloaded on demand)
+.mvn/wrapper/maven-wrapper.jar
+
+# Local configuration overrides (never commit secrets)
+src/test/resources/environments/local.properties
+.env
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+bin/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
