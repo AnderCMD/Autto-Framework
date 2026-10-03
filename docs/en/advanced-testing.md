@@ -137,7 +137,7 @@ Differences below `autto.visual.pixel-threshold` per channel and up to `autto.vi
 are accepted. Baselines depend on browser, version, OS and fonts: create and compare them in the same environment
 (the Docker target is the most reproducible).
 
-### Network mocking (experimental)
+### Network mocking
 
 ```java
 network.stub("/api/cart", 500, "{\"error\":\"boom\"}");    // the UI must show an error banner
@@ -145,9 +145,11 @@ network.block("googletagmanager.com");                      // third parties nev
 network.delay("/api/products", Duration.ofSeconds(3));      // loading indicators
 ```
 
-It uses WebDriver BiDi (Chrome, Edge, Firefox, Grid) and needs `autto.browser.console-logs: true`. Request
-interception is not yet reliable in every Chromium release (it failed with *Invalid InterceptionId* on Chrome 150
-during development), so the demo scenario ships tagged `@ignore`: try it on your browser version before relying on it.
+Chrome and Edge use the DevTools protocol (Selenium's `NetworkInterceptor`, which needs the DevTools bindings that match
+the browser version: Selenium ships the latest ones). Firefox, and Chromium versions without matching bindings, fall
+back to WebDriver BiDi (`autto.browser.console-logs: true`, the default). `delay` forwards the real request after the
+pause. Verified on Chrome 154: stubbed responses, blocked hosts and delayed requests (see `features/quality`). WebDriver
+BiDi request interception on Chrome 150 failed with *Invalid InterceptionId*, hence the DevTools engine first.
 
 ### Accessibility
 
@@ -174,9 +176,15 @@ autto:
 Register the plugin once in `junit-platform.properties`:
 `io.github.andercmd.autto.core.observability.RunSummaryPlugin`.
 
-Test-management tools: import `target/autto-reports/cucumber/cucumber.json` (Xray, Zephyr) or
-`cucumber-junit.xml` (TestRail, Azure DevOps, Allure CLI). The native Allure Cucumber plugin does not support the
-Cucumber 8 message API used by this project (`NoSuchMethodError`), so it is not bundled.
+### Allure and test-management tools
+
+Add `io.github.andercmd.autto.core.report.AllureResultsPlugin` to `cucumber.plugin` and it writes Allure result files
+(`target/allure-results`, `-Dautto.allure.results=...` to change it) with steps, tags as labels, failure messages and
+traces, and every attachment (screenshots, video, page source). View them with `allure serve target/allure-results`.
+This is Autto's own writer because the official `allure-cucumber7-jvm` plugin does not work with the Cucumber 8
+message API used here (`NoSuchMethodError`).
+
+Xray, Zephyr: import `target/autto-reports/cucumber/cucumber.json`. TestRail, Azure DevOps: `cucumber-junit.xml`.
 
 ## Native mobile apps
 

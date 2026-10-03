@@ -14,8 +14,9 @@ All notable changes to this project are documented here. The format follows
 - **Data and services**: `Unique` (collision-free test data), scenario-scoped `Database` (JDBC with automatic
   clean-up), `Mailbox` (Mailpit) and `Totp` for e-mail and two-factor flows, `ApiContract` (JSON Schema), Mailpit
   in `docker-compose.yml` (profile `mail`).
-- **Page quality**: `WebPerformance` budgets, `VisualRegression` with page stabilisation, `NetworkMock` (BiDi,
-  experimental), environment tags `@viewport:WxH`, `@slow-network`, `@offline`.
+- **Page quality**: `WebPerformance` budgets, `VisualRegression` with page stabilisation, `NetworkMock` (DevTools, BiDi fallback), environment tags `@viewport:WxH`, `@slow-network`, `@offline`.
+- **Allure**: `AllureResultsPlugin` writes Allure results (steps, tags, failures, attachments) without the official
+  Cucumber 7 adapter, which is incompatible with Cucumber 8.
 - **Observability**: `RunSummaryPlugin` (`metrics.json`, Prometheus file, Slack / Teams / generic webhook),
   correlation id in logs and `X-Correlation-Id` of API calls, JSON logs (`autto/logback-json.xml`).
 - **Tooling**: `scripts/doctor.sh`, `scripts/new-project.sh` with `templates/starter`, `.devcontainer/`, Appium

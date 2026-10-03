@@ -18,14 +18,22 @@ import org.openqa.selenium.bidi.network.ContinueRequestParameters;
 import org.openqa.selenium.bidi.network.Header;
 import org.openqa.selenium.bidi.network.InterceptPhase;
 import org.openqa.selenium.bidi.network.ProvideResponseParameters;
+import org.openqa.selenium.devtools.NetworkInterceptor;
+import org.openqa.selenium.remote.http.Contents;
+import org.openqa.selenium.remote.http.HttpResponse;
+import org.openqa.selenium.remote.http.Routable;
+import org.openqa.selenium.remote.http.Route;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Intercepts the browser's network traffic to simulate backend failures, slow responses or blocked third parties,
- * without touching the application under test. It uses WebDriver BiDi, so it works on Chrome, Edge and Firefox,
- * locally and on Selenium Grid, and does not depend on the browser version (it needs
- * {@code autto.browser.console-logs: true}, the default, which opens the BiDi session).
+ * without touching the application under test.
+ *
+ * <p>Chromium browsers (Chrome, Edge) use the DevTools protocol through Selenium's {@code NetworkInterceptor}, which
+ * needs the DevTools bindings matching the browser version (Selenium ships the latest ones; a very old or very new
+ * browser falls back to WebDriver BiDi). Firefox uses WebDriver BiDi, which needs
+ * {@code autto.browser.console-logs: true} (the default). Both work locally and on Selenium Grid.
  *
  * <p>Scenario-scoped: every rule is removed when the scenario ends.
  *
@@ -44,9 +52,13 @@ public class NetworkMock implements AutoCloseable {
         return thread;
     });
 
+    private static final java.util.Set<String> RESTRICTED_HEADERS =
+            java.util.Set.of("host", "content-length", "connection", "upgrade", "expect", "accept-encoding");
+
     private final List<Rule> rules = new CopyOnWriteArrayList<>();
     private Network network;
     private String interceptId;
+    private NetworkInterceptor cdp;
 
     /** Answers every request whose URL contains {@code urlPart} with the given status and JSON body. */
     public void stub(String urlPart, int status, String jsonBody) {
@@ -71,6 +83,7 @@ public class NetworkMock implements AutoCloseable {
     @Override
     public void close() {
         rules.clear();
+        stopCdp();
         if (network == null) {
             return;
         }
@@ -92,12 +105,84 @@ public class NetworkMock implements AutoCloseable {
         return rules.stream().filter(rule -> url.contains(rule.urlPart())).map(Rule::action).findFirst();
     }
 
+    private void stopCdp() {
+        if (cdp != null) {
+            try {
+                cdp.close();
+            } catch (RuntimeException e) {
+                LOG.debug("DevTools interception did not stop cleanly: {}", e.getMessage());
+            }
+            cdp = null;
+        }
+    }
+
+    /** DevTools engine: one interceptor answering from the current rules (rebuilt whenever a rule is added). */
+    private boolean startCdp(WebDriver driver) {
+        try {
+            Routable routes = Route.matching(request -> decide(rules, request.getUri()).isPresent())
+                    .to(() -> request -> respond(decide(rules, request.getUri()).orElseThrow(), request));
+            stopCdp();
+            cdp = new NetworkInterceptor(driver, routes);
+            return true;
+        } catch (RuntimeException e) {
+            LOG.debug("DevTools interception unavailable ({}), trying WebDriver BiDi", e.getMessage());
+            cdp = null;
+            return false;
+        }
+    }
+
+    private static HttpResponse respond(Action action, org.openqa.selenium.remote.http.HttpRequest request) {
+        if (action instanceof Action.Respond respond) {
+            return new HttpResponse().setStatus(respond.status()).addHeader("Content-Type", respond.contentType())
+                    .setContent(Contents.utf8String(respond.body()));
+        }
+        if (action instanceof Action.Delay delay) {
+            pause(delay.duration());
+            return forward(request);
+        }
+        return new HttpResponse().setStatus(503).addHeader("Content-Type", "text/plain")
+                .setContent(Contents.utf8String("blocked by Autto"));
+    }
+
+    /** Sends the original request to the network (after a delay) and relays the answer to the browser. */
+    private static HttpResponse forward(org.openqa.selenium.remote.http.HttpRequest request) {
+        try {
+            byte[] body = request.getContent().get().readAllBytes();
+            java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder(
+                    java.net.URI.create(request.getUri()));
+            request.forEachHeader((name, value) -> {
+                if (!RESTRICTED_HEADERS.contains(name.toLowerCase(java.util.Locale.ROOT))) {
+                    builder.header(name, value);
+                }
+            });
+            builder.method(request.getMethod().name(), java.net.http.HttpRequest.BodyPublishers.ofByteArray(body));
+            java.net.http.HttpResponse<byte[]> answer = java.net.http.HttpClient.newHttpClient().send(builder.build(),
+                    java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse response = new HttpResponse().setStatus(answer.statusCode());
+            answer.headers().map().forEach((name, values) -> {
+                if (!name.startsWith(":") && !"content-encoding".equalsIgnoreCase(name)
+                        && !"transfer-encoding".equalsIgnoreCase(name)) {
+                    values.forEach(value -> response.addHeader(name, value));
+                }
+            });
+            return response.setContent(Contents.bytes(answer.body()));
+        } catch (java.io.IOException | IllegalArgumentException e) {
+            return new HttpResponse().setStatus(502).setContent(Contents.utf8String(String.valueOf(e.getMessage())));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new HttpResponse().setStatus(502);
+        }
+    }
+
     private synchronized void add(Rule rule) {
         rules.add(rule);
+        WebDriver driver = DriverManager.driver();
+        if (network == null && startCdp(driver)) {
+            return;
+        }
         if (network != null) {
             return;
         }
-        WebDriver driver = DriverManager.driver();
         try {
             network = new Network(driver);
         } catch (RuntimeException e) {

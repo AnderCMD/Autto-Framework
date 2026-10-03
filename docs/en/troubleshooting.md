@@ -94,9 +94,9 @@ persists clear the cache (`rm -rf ~/.cache/selenium`) or use `-Dautto.driver.res
 
 ### Network mocking times out or reports `Invalid InterceptionId`
 
-`NetworkMock` relies on WebDriver BiDi request interception, which is unreliable in some Chromium releases (seen on
-Chrome 150). Keep `autto.browser.console-logs: true`, try another browser version or Firefox, and treat the feature as
-experimental until it passes on yours.
+Chromium uses DevTools interception and only falls back to WebDriver BiDi, whose request interception is unreliable in
+some Chromium releases (seen on Chrome 150). If DevTools bindings for your browser version are missing
+(`Unable to find CDP implementation`), update Selenium or the browser, and keep `autto.browser.console-logs: true`.
 
 ### Visual regression differs between machines
 

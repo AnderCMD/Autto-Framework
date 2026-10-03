@@ -94,9 +94,9 @@ una vez. Si persiste, borra la caché (`rm -rf ~/.cache/selenium`) o usa `-Dautt
 
 ### La simulación de red expira o informa `Invalid InterceptionId`
 
-`NetworkMock` depende de la intercepción de peticiones de WebDriver BiDi, poco fiable en algunas versiones de Chromium
-(visto en Chrome 150). Mantén `autto.browser.console-logs: true`, prueba otra versión del navegador o Firefox y trata la
-función como experimental hasta que pase en la tuya.
+Chromium usa intercepción DevTools y solo recurre a WebDriver BiDi, cuya intercepción de peticiones es poco fiable en
+algunas versiones de Chromium (visto en Chrome 150). Si faltan los bindings DevTools de tu versión del navegador
+(`Unable to find CDP implementation`), actualiza Selenium o el navegador y mantén `autto.browser.console-logs: true`.
 
 ### La regresión visual difiere entre máquinas
 

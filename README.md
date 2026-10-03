@@ -35,7 +35,7 @@ parallelism, evidence and reports are already solved.
 | **API testing** | REST Assured `Api` bean with base URL, default headers and timeouts; every request and response in the report with secrets masked. |
 | **Accessibility** | axe-core audits against WCAG 2.1 A/AA with one call (`Accessibility.scan()`), violations listed in the report. |
 | **Resilient by default** | Browser start retries with back-off, explicit waits only, stale elements retried, scenario timeout, driver self-healing after browser updates, failed scenarios re-run once and flaky ones reported, soft assertions. |
-| **Beyond clicks** | Database helper with automatic clean-up, e-mail / one-time code verification (Mailpit, TOTP), JSON-schema contract tests, performance budgets, visual regression, network mocking (experimental), unique test data. |
+| **Beyond clicks** | Database helper with automatic clean-up, e-mail / one-time code verification (Mailpit, TOTP), JSON-schema contract tests, performance budgets, visual regression, network mocking, unique test data. |
 | **Observable** | `metrics.json` / Prometheus file, Slack and Teams summaries, correlation id in logs and API calls, JSON logs, nightly reports published with history. |
 | **Rich reports** | Extent Spark dashboard, timeline, tags, devices, authors, failures-only report; Cucumber HTML/JSON/JUnit outputs. |
 | **Evidence** | Screenshots, **MP4 video of every scenario** (no ffmpeg), page source, browser console (BiDi), attachments. |

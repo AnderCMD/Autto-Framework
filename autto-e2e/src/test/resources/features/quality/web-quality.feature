@@ -14,14 +14,25 @@ Feature: Web quality
     When the customer logs in as "standard"
     Then the products catalog is displayed
 
-  # Experimental: network interception uses WebDriver BiDi, whose request interception is not yet reliable in every
-  # Chromium release (verified failing on Chrome 150 with "Invalid InterceptionId"). Remove @ignore to try it.
-  @network @ignore
+  @network
   Scenario: A blocked third party does not break the login
     Given the third party "backtrace.io" is blocked
     And the customer is on the login page
     When the customer logs in as "standard"
     Then the products catalog is displayed
+
+  @network
+  Scenario: A stubbed backend response replaces the real one
+    Given the response of "www.saucedemo.com" is stubbed with a page titled "Stubbed by Autto"
+    When the browser opens "https://www.saucedemo.com/"
+    Then the browser title is "Stubbed by Autto"
+
+  @network
+  Scenario: A delayed request still reaches the real server
+    Given requests to "www.saucedemo.com" are delayed by 2 seconds
+    When the browser opens "https://www.saucedemo.com/"
+    Then the browser title is "Swag Labs"
+    And opening it took at least 2 seconds
 
   # Baselines depend on browser, version and OS: create them with -Dautto.visual.update=true, review and commit
   # them, then remove @ignore. Run in Docker (-Dspring.profiles.active=qa,docker) for reproducible pixels.

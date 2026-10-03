@@ -35,7 +35,7 @@ negocio. Navegadores, drivers, secretos, paralelismo, evidencias y reportes ya e
 | **Pruebas de API** | Bean `Api` de REST Assured con URL base, cabeceras por defecto y timeouts; cada petición y respuesta en el reporte con los secretos enmascarados. |
 | **Accesibilidad** | Auditorías axe-core contra WCAG 2.1 A/AA con una sola llamada (`Accessibility.scan()`), violaciones listadas en el reporte. |
 | **Resiliente por defecto** | Reintentos al arrancar el navegador con back-off, solo esperas explícitas, elementos obsoletos reintentados, timeout por escenario, auto-reparación del driver tras actualizar el navegador, escenarios fallidos re-ejecutados una vez y los flaky reportados, aserciones suaves. |
-| **Más allá de los clics** | Asistente de base de datos con limpieza automática, verificación de correos y códigos de un solo uso (Mailpit, TOTP), pruebas de contrato con JSON Schema, presupuestos de rendimiento, regresión visual, simulación de red (experimental), datos de prueba únicos. |
+| **Más allá de los clics** | Asistente de base de datos con limpieza automática, verificación de correos y códigos de un solo uso (Mailpit, TOTP), pruebas de contrato con JSON Schema, presupuestos de rendimiento, regresión visual, simulación de red, datos de prueba únicos. |
 | **Observable** | `metrics.json` / archivo Prometheus, resúmenes a Slack y Teams, correlation id en logs y llamadas a la API, logs JSON, reportes nocturnos publicados con historial. |
 | **Reportes completos** | Dashboard Extent Spark, línea de tiempo, tags, dispositivos, autores, reporte solo de fallos; salidas HTML/JSON/JUnit de Cucumber. |
 | **Evidencias** | Capturas, **video MP4 de cada escenario** (sin ffmpeg), código fuente de la página, consola del navegador (BiDi), adjuntos. |
