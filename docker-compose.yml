@@ -19,6 +19,9 @@ x-node: &node
     SE_NODE_MAX_SESSIONS: "${SE_NODE_MAX_SESSIONS:-2}"
     SE_NODE_OVERRIDE_MAX_SESSIONS: "true"
     SE_VNC_NO_PASSWORD: "false"
+    # Public address of the Grid: nodes use it to build the WebDriver BiDi / CDP WebSocket URLs (se:bidi, se:cdp)
+    # returned to the tests. Without it they point to the hub's internal container IP, unreachable from the host.
+    SE_NODE_GRID_URL: "${SE_NODE_GRID_URL:-http://localhost:4444}"
 
 services:
   selenium-hub:

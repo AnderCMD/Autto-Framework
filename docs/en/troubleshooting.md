@@ -67,6 +67,12 @@ The hub was busy or the vendor queue was full. Autto already retries `autto.driv
 with exponential back-off; raise it for shared Grids (`-Dautto.driver.start-retries=3`) and check the hub capacity
 (`max-sessions`) and your vendor's parallel limit.
 
+### `JdkWebSocket initial request execution error (uri: ws://172.x.x.x:4444/session/.../se/bidi)` on Grid
+
+The Grid nodes advertise WebSocket URLs (browser console logs through WebDriver BiDi) with an address the tests
+cannot reach. Set the public Grid URL on the nodes: `SE_NODE_GRID_URL=http://<host-reachable-by-tests>:4444` (the
+included `docker-compose.yml` uses `http://localhost:4444`). The scenario still runs; only console logs are lost.
+
 ### API requests time out or fail with SSL errors
 
 Increase `autto.api.read-timeout` / `connect-timeout`. For test environments with self-signed certificates set

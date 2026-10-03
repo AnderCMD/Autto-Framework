@@ -37,7 +37,7 @@ jobs:
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
         run: >
           ./mvnw install
-          -Dcucumber.filter.tags="@regression"
+          -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
           -Dcucumber.execution.parallel.enabled=true
           -Dcucumber.execution.parallel.config.fixed.parallelism=2
 
@@ -72,7 +72,7 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: qa,ci,docker
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
-        run: ./mvnw install -Dcucumber.filter.tags="@regression"
+        run: ./mvnw install -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
 
       - name: Upload report
         if: always()

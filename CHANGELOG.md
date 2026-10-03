@@ -5,6 +5,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Nightly regression ran the `@demo-failure` scenario (it fails on purpose): the workflow tag expression now keeps
+  the default exclusions.
+- Browser console logs (WebDriver BiDi) failed on the Docker Selenium Grid because nodes advertised the hub's
+  internal IP: `docker-compose.yml` sets `SE_NODE_GRID_URL`.
+
 ## [1.1.0] - 2026-10-03
 
 ### Added
