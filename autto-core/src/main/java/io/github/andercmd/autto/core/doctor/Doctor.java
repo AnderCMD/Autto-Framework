@@ -102,14 +102,14 @@ public final class Doctor {
     }
 
     private static Check reportDir(AuttoSettings settings) {
-        Path dir = Path.of(settings.properties().report().dir());
-        try {
-            Files.createDirectories(dir);
-            return Files.isWritable(dir) ? new Check(Status.OK, "Report folder", dir.toAbsolutePath().toString())
-                    : new Check(Status.FAIL, "Report folder", dir + " is not writable");
-        } catch (java.io.IOException e) {
-            return new Check(Status.FAIL, "Report folder", e.getMessage());
+        Path dir = Path.of(settings.properties().report().dir()).toAbsolutePath();
+        Path existing = dir;
+        while (existing != null && !Files.exists(existing)) {
+            existing = existing.getParent();
         }
+        return existing != null && Files.isWritable(existing)
+                ? new Check(Status.OK, "Report folder", dir.toString())
+                : new Check(Status.FAIL, "Report folder", dir + " cannot be created or written");
     }
 
     private static Check binary(String name, String... candidates) {

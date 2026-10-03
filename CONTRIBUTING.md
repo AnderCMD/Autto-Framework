@@ -10,6 +10,8 @@ Thanks for helping to improve Autto! · ¡Gracias por ayudar a mejorar Autto!
    ```bash
    ./mvnw verify -Dcucumber.filter.tags=@showcase      # enforcer, checkstyle, unit tests, report pipeline
    ./mvnw install -Dautto.browser.headless=true        # full suite (if you touched the driver or hooks)
+   ./mvnw -Pcoverage -pl autto-core verify             # coverage gate (do not lower coverage.minimum)
+   ./mvnw -Pquality verify -DskipTests                 # SpotBugs (JDK 21 or 25)
    ```
 4. Open a pull request using the template. Use [Conventional Commits](https://www.conventionalcommits.org/)
    (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`).
@@ -39,6 +41,8 @@ Thanks for helping to improve Autto! · ¡Gracias por ayudar a mejorar Autto!
    ```bash
    ./mvnw verify -Dcucumber.filter.tags=@showcase      # enforcer, checkstyle, tests unitarios, reportes
    ./mvnw install -Dautto.browser.headless=true        # suite completa (si tocaste driver o hooks)
+   ./mvnw -Pcoverage -pl autto-core verify             # umbral de cobertura (no bajes coverage.minimum)
+   ./mvnw -Pquality verify -DskipTests                 # SpotBugs (JDK 21 o 25)
    ```
 4. Abre un pull request usando la plantilla. Usa [Conventional Commits](https://www.conventionalcommits.org/es/)
    (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`).

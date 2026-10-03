@@ -19,7 +19,9 @@ the level you need today; moving up never requires a rewrite.
 
 ### Starter — first scenario in 15 minutes
 
-1. Click **Use this template** on GitHub (or clone the repository).
+1. Click **Use this template** on GitHub (or clone the repository), **or** generate a lean standalone project:
+   `./scripts/new-project.sh ../my-e2e com.acme my-e2e` (see [Advanced testing](advanced-testing.md#start-a-new-project)).
+   Open the repository in a dev container / Codespace for a ready environment.
 2. Follow [Getting started](getting-started.md) and run the demo once.
 3. Point `autto.base-url` to your application, delete `features/*` of the demo and write your first feature
    ([Writing tests](writing-tests.md)).
@@ -66,6 +68,10 @@ Recommended additions: Selenium Grid or a cloud vendor (`grid` / `browserstack` 
 ```
 
 Coordinates: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (e.g. `v1.1.1`), compiled for Java 21+.
+
+**Maven Central.** Pushing a tag runs the *Release* workflow, which publishes `io.github.andercmd:autto-core` to Maven
+Central when the `MAVEN_CENTRAL_*` / `GPG_*` secrets exist (profile `release`); every release is also signed and
+attested, see [Advanced testing](advanced-testing.md#supply-chain-quality-gates).
 
 **Internal repository (Nexus, Artifactory, GitHub Packages, Azure Artifacts).** Recommended for companies: you
 control availability and can scan the artifact.

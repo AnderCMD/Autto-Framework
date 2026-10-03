@@ -12,14 +12,25 @@ Key points for any CI:
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `ci.yml` | push to `main`, pull requests, manual | **Secret scanning** (gitleaks, full history) · **Dependency review** (pull requests: new dependencies with high/critical vulnerabilities fail) · **Build** (enforcer, checkstyle, unit tests, browser-less scenarios) · **E2E matrix** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
-| `nightly.yml` | nightly, manual | `@regression` against the Docker Selenium Grid (parallel) and with WebDriverManager Docker browsers |
+| `ci.yml` | push to `main`, pull requests, manual | **Secret scanning** (gitleaks, full history) · **Dependency review** (pull requests: new dependencies with high/critical vulnerabilities fail) · **Build** on JDK 21, 25 and 27 (enforcer, checkstyle, unit tests, coverage gate, browser-less scenarios; SpotBugs on 21; 27 is experimental) · **E2E**: pull requests run Linux + Chrome only, `main` and manual runs the Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) matrix. Failed scenarios are re-run once |
+| `nightly.yml` | nightly, manual | **OSV** dependency vulnerabilities · `@regression` against the Docker Selenium Grid (parallel) and with WebDriverManager Docker browsers, failures re-run once · optional **Pages publication** of every report with history · optional Slack / Teams summary |
+| `release.yml` | tag `vX.Y.Z` | Build, tests, **SBOM**, build-provenance **attestation**, keyless **Sigstore** signatures, GitHub release, and **Maven Central** when its secrets exist |
 
 Required secret: `SAUCE_PASSWORD` (*Settings → Secrets and variables → Actions*). The demo workflow falls back to
 the public demo password; remove that fallback for a real application.
 
-JDK 27 is installed with `oracle-actions/setup-java` from jdk.java.net (Early Access builds until the March 2027 GA).
-To use another JDK change `JAVA_RELEASE` and add `-Djava.version=<n>` to the Maven commands.
+Optional configuration:
+
+| Name | Kind | Effect |
+|---|---|---|
+| `AUTTO_NOTIFICATIONS_WEBHOOK_URL` | secret | Slack / Teams incoming webhook: the nightly summary is sent when something fails (`AUTTO_NOTIFICATIONS_TYPE` variable: `slack` or `teams`) |
+| `PUBLISH_REPORTS` | variable = `true` | Publishes each nightly report to the `gh-pages` branch (`runs/<n>/`) with a history page. Enable *Settings → Pages → Deploy from a branch → gh-pages*. Reports are public when the repository is public |
+| `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE` | secrets | Enable publication to Maven Central from the Release workflow |
+
+Every action is pinned to a commit SHA (the comment keeps the version); Dependabot opens the update pull requests.
+JDK 21 and 25 come from `actions/setup-java` (Temurin); JDK 27 from `oracle-actions/setup-java` (jdk.java.net, Early
+Access until the March 2027 GA). The e2e jobs use `JAVA_RELEASE`; to use another JDK change it and add
+`-Djava.version=<n>` to the Maven commands.
 
 ## Jenkins
 

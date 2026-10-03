@@ -116,12 +116,13 @@ autto:
 
   performance:
     # budgets of WebPerformance.measure().assertWithinBudget(); 0 disables one. Core Web Vitals "good" values are
-    # fcp 1.8s · lcp 2.5s · cls 0.1; these are relaxed because the demo store is hosted far from most runners.
-    fcp: 4s
-    lcp: 5s
-    cls: 0.1
-    ttfb: 2s
-    load: 10s
+    # fcp 1.8s · lcp 2.5s · cls 0.1. The demo store is a third-party site reached over the public internet, so these
+    # are only a canary against catastrophic slowness: set real budgets for the application you own.
+    fcp: 10s
+    lcp: 12s
+    cls: 0.25
+    ttfb: 5s
+    load: 30s
 
   visual:
     baseline-dir: src/test/resources/visual

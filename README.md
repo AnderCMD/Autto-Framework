@@ -34,11 +34,15 @@ parallelism, evidence and reports are already solved.
 | **Secure secrets** | `.env` (git-ignored) locally, CI secrets in pipelines, values masked in logs and reports, gitleaks in CI and pre-commit. |
 | **API testing** | REST Assured `Api` bean with base URL, default headers and timeouts; every request and response in the report with secrets masked. |
 | **Accessibility** | axe-core audits against WCAG 2.1 A/AA with one call (`Accessibility.scan()`), violations listed in the report. |
-| **Resilient by default** | Browser start retries with back-off, explicit waits only, soft assertions verified at the end of every scenario. |
+| **Resilient by default** | Browser start retries with back-off, explicit waits only, stale elements retried, scenario timeout, driver self-healing after browser updates, failed scenarios re-run once and flaky ones reported, soft assertions. |
+| **Beyond clicks** | Database helper with automatic clean-up, e-mail / one-time code verification (Mailpit, TOTP), JSON-schema contract tests, performance budgets, visual regression, network mocking (experimental), unique test data. |
+| **Observable** | `metrics.json` / Prometheus file, Slack and Teams summaries, correlation id in logs and API calls, JSON logs, nightly reports published with history. |
 | **Rich reports** | Extent Spark dashboard, timeline, tags, devices, authors, failures-only report; Cucumber HTML/JSON/JUnit outputs. |
 | **Evidence** | Screenshots, **MP4 video of every scenario** (no ffmpeg), page source, browser console (BiDi), attachments. |
-| **Quality gates** | Maven Enforcer, Checkstyle (no `Thread.sleep`, no `System.out`…), unit tests, JaCoCo profile, Dependabot. |
-| **CI ready** | GitHub Actions: secret scanning, build, cross-OS × cross-browser matrix, nightly Grid and Docker regressions. |
+| **Quality gates** | Maven Enforcer, Checkstyle (no `Thread.sleep`, no `System.out`…), unit tests, JaCoCo coverage gate, SpotBugs, Dependabot. |
+| **CI ready** | GitHub Actions pinned by SHA: secret scanning, build on JDK 21/25/27, fast pull-request matrix and full cross-OS × cross-browser matrix, nightly Grid and Docker regressions, OSV scans. |
+| **Supply chain** | CycloneDX SBOM, build-provenance attestation, Sigstore signatures, GitHub releases and Maven Central profile. |
+| **Easy to start** | `scripts/new-project.sh` creates a working project, dev container, `scripts/doctor.sh` diagnoses an environment. |
 
 ## Tech stack
 
@@ -51,7 +55,7 @@ parallelism, evidence and reports are already solved.
 | WebDriverManager | 6.4.0 |
 | Appium Java client | 10.1.1 |
 | JUnit Platform | 6.1.3 |
-| REST Assured | 6.0.1 |
+| REST Assured (+ JSON Schema validator) | 6.0.1 |
 | axe-core (Selenium) | 4.13.0 |
 | Extent Reports | 5.1.2 |
 | Checkstyle | 14.3.0 |
@@ -83,7 +87,10 @@ Open **`autto-e2e/target/autto-reports/index.html`**.
 Autto-Framework
 ├── pom.xml                         parent: versions, plugins, quality gates
 ├── .env.example                    secret NAMES (copy to .env, which is git-ignored)
-├── config/checkstyle/              coding standard
+├── config/checkstyle/              coding standard (config/spotbugs/ for the quality profile)
+├── scripts/                        doctor, rerun of failures, new-project, report publishing
+├── templates/starter/              project template used by scripts/new-project.sh
+├── .devcontainer/                  one-click development environment
 ├── docker-compose.yml              Selenium Grid
 ├── autto-core/                     ENGINE (publishable library, Spring Boot auto-configuration)
 │   └── src/main/java/io/github/andercmd/autto/core/
@@ -93,7 +100,10 @@ Autto-Framework
 │       ├── api/        Api (REST Assured), ApiReportFilter
 │       ├── a11y/       Accessibility (axe-core), AccessibilityResult
 │       ├── ui/         BasePage, @PageObject
-│       ├── cucumber/   BrowserHooks (browser life cycle + evidence), SoftAssertionHooks
+│       ├── cucumber/   BrowserHooks (browser life cycle + evidence), timeout, tag and resource hooks
+│       ├── db/ mail/ network/ perf/ visual/   Database, Mailbox, NetworkMock, WebPerformance, VisualRegression
+│       ├── observability/   RunSummaryPlugin (metrics, notifications), correlation id
+│       ├── doctor/     environment self-check
 │       ├── media/      screenshots, video recorder
 │       ├── report/     Extent Cucumber plugin, Report API
 │       ├── security/   Secrets masking, Credentials
@@ -127,6 +137,7 @@ Autto-Framework
 | [Architecture](docs/en/architecture.md) | Modules, screaming architecture, dependency injection, execution flow |
 | [Architecture decisions](docs/en/decisions.md) | Why Spring Boot, WebDriverManager, `.env`, multi-module, REST Assured, axe-core |
 | [Writing tests](docs/en/writing-tests.md) | New feature step by step, page objects, soft assertions, data, accessibility |
+| [Advanced testing](docs/en/advanced-testing.md) | Stability, database, e-mail, contracts, performance, visual regression, observability, supply chain |
 | [API testing](docs/en/api-testing.md) | `Api` client, authentication, report, data set-up for UI scenarios |
 | [Configuration](docs/en/configuration.md) | Profiles, precedence and every `autto.*` key |
 | [Secrets & environment variables](docs/en/secrets.md) | `.env`, CI secrets, masking, leak prevention |

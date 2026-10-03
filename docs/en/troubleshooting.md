@@ -82,4 +82,23 @@ Increase `autto.api.read-timeout` / `connect-timeout`. For test environments wit
 ### Flaky tests
 
 No `Thread.sleep` (blocked by Checkstyle), keep `autto.timeouts.implicit=0s`, make scenarios independent and
-re-run failures with `-Dcucumber.features=@target/autto-reports/rerun.txt` to tell flaky from broken.
+run `./scripts/run-with-rerun.sh`: failed scenarios run once more, and the ones that pass the second time are listed
+as flaky (`recovered_on_rerun` in `metrics.json`, category `rerun` in the report) instead of hiding. `BasePage`
+already retries stale elements; `autto.scenario.timeout` stops hung scenarios. See
+[Advanced testing](advanced-testing.md).
+
+### `This version of ChromeDriver only supports Chrome version N`
+
+The browser updated after the driver was cached. Autto detects this, refreshes the resolution and retries once. If it
+persists clear the cache (`rm -rf ~/.cache/selenium`) or use `-Dautto.driver.resolution=selenium-manager`.
+
+### Network mocking times out or reports `Invalid InterceptionId`
+
+`NetworkMock` relies on WebDriver BiDi request interception, which is unreliable in some Chromium releases (seen on
+Chrome 150). Keep `autto.browser.console-logs: true`, try another browser version or Firefox, and treat the feature as
+experimental until it passes on yours.
+
+### Visual regression differs between machines
+
+Baselines depend on browser, version, OS and fonts. Create them and compare in the same environment, preferably the
+Docker target, and raise `autto.visual.tolerance` / ignore dynamic areas only when needed.

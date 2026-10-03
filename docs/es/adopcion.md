@@ -19,7 +19,9 @@ motor. Empieza en el nivel que necesitas hoy; subir de nivel nunca exige reescri
 
 ### Inicial — primer escenario en 15 minutos
 
-1. Pulsa **Use this template** en GitHub (o clona el repositorio).
+1. Pulsa **Use this template** en GitHub (o clona el repositorio), **o** genera un proyecto independiente y ligero:
+   `./scripts/new-project.sh ../mi-e2e com.acme mi-e2e` (ver [Pruebas avanzadas](pruebas-avanzadas.md#empezar-un-proyecto-nuevo)).
+   Abre el repositorio en un dev container / Codespace para tener un entorno listo.
 2. Sigue [Primeros pasos](primeros-pasos.md) y ejecuta la demo una vez.
 3. Apunta `autto.base-url` a tu aplicación, borra los `features/*` de la demo y escribe tu primera funcionalidad
    ([Escribir pruebas](escribir-pruebas.md)).
@@ -68,6 +70,10 @@ beans de API para los datos de prueba.
 ```
 
 Coordenadas: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (p. ej. `v1.1.1`), compilado para Java 21+.
+
+**Maven Central.** Subir un tag ejecuta el workflow *Release*, que publica `io.github.andercmd:autto-core` en Maven
+Central si existen los secretos `MAVEN_CENTRAL_*` / `GPG_*` (perfil `release`); cada release además se firma y se
+atesta, ver [Pruebas avanzadas](pruebas-avanzadas.md#controles-de-calidad-y-cadena-de-suministro).
 
 **Repositorio interno (Nexus, Artifactory, GitHub Packages, Azure Artifacts).** Recomendado para empresas: controlas
 la disponibilidad y puedes analizar el artefacto.
