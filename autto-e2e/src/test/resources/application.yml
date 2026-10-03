@@ -110,6 +110,47 @@ autto:
     # minor | moderate | serious | critical — impact rejected by "the page has no accessibility violations"
     fail-on: serious
 
+  scenario:
+    # a scenario running longer than this is aborted (its browser is closed); 0 disables the guard
+    timeout: 10m
+
+  performance:
+    # budgets of WebPerformance.measure().assertWithinBudget(); 0 disables one. Core Web Vitals "good" values are
+    # fcp 1.8s · lcp 2.5s · cls 0.1; these are relaxed because the demo store is hosted far from most runners.
+    fcp: 4s
+    lcp: 5s
+    cls: 0.1
+    ttfb: 2s
+    load: 10s
+
+  visual:
+    baseline-dir: src/test/resources/visual
+    # share of different pixels still accepted (0.001 = 0.1 %)
+    tolerance: 0.001
+    # per-channel difference (0-255) below which two pixels are the same colour
+    pixel-threshold: 10
+    # true (or -Dautto.visual.update=true) creates / replaces the baselines instead of comparing
+    update: false
+
+  # JDBC access for data set-up / verification (add your database driver to the test project):
+  #   db: {url: "jdbc:postgresql://localhost:5432/shop", username: shop, password: ${DB_PASSWORD}}
+  db:
+    url:
+
+  mail:
+    # Mailpit (docker compose --profile mail up -d); the application under test must send to its SMTP port 1025
+    url: http://localhost:8025
+    timeout: 30s
+
+  notifications:
+    # Slack / Teams incoming webhook (keep it in a secret: AUTTO_NOTIFICATIONS_WEBHOOK_URL)
+    webhook-url:
+    # slack | teams | generic
+    type: slack
+    only-on-failure: false
+    # link shown in the message (CI run, GitHub Pages...): AUTTO_NOTIFICATIONS_REPORT_URL
+    report-url:
+
 # ---------------------------------------------------------------------------------------------------------------------
 #  Test users. Passwords are NEVER written here: they reference secrets resolved from .env (local) or CI secrets.
 # ---------------------------------------------------------------------------------------------------------------------

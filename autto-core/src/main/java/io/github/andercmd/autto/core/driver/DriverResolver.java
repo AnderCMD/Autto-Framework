@@ -63,10 +63,35 @@ public final class DriverResolver {
         return RESOLVED.computeIfAbsent(browser, b -> resolveWithWebDriverManager(b, props));
     }
 
+    /**
+     * Forgets what was resolved for the browser and resolves it again ignoring WebDriverManager's resolution cache.
+     * Used when the browser auto-updated after the driver was chosen (driver and browser versions no longer match).
+     */
+    public static Resolution refresh(BrowserType browser, AuttoProperties props) {
+        RESOLVED.remove(browser);
+        if (strategyFor(browser, props) != Strategy.WEBDRIVERMANAGER) {
+            return resolve(browser, props);
+        }
+        try {
+            WebDriverManager.getInstance(browser.driverManagerType().orElseThrow()).clearResolutionCache();
+        } catch (RuntimeException e) {
+            LOG.debug("Resolution cache could not be cleared: {}", e.getMessage());
+        }
+        return RESOLVED.computeIfAbsent(browser, b -> resolveWithWebDriverManager(b, props, true));
+    }
+
     private static Resolution resolveWithWebDriverManager(BrowserType browser, AuttoProperties props) {
+        return resolveWithWebDriverManager(browser, props, false);
+    }
+
+    private static Resolution resolveWithWebDriverManager(BrowserType browser, AuttoProperties props,
+            boolean fresh) {
         DriverManagerType type = browser.driverManagerType().orElseThrow();
         try {
             WebDriverManager wdm = WebDriverManager.getInstance(type);
+            if (fresh) {
+                wdm.avoidResolutionCache();
+            }
             if (props.driver().cachePath() != null) {
                 wdm.cachePath(props.driver().cachePath());
             }

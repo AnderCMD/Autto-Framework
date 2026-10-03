@@ -4,18 +4,30 @@ import io.github.andercmd.autto.core.driver.DriverManager;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
-import org.openqa.selenium.devtools.NetworkInterceptor;
-import org.openqa.selenium.remote.http.Contents;
-import org.openqa.selenium.remote.http.HttpRequest;
-import org.openqa.selenium.remote.http.HttpResponse;
-import org.openqa.selenium.remote.http.Routable;
-import org.openqa.selenium.remote.http.Route;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.bidi.module.Network;
+import org.openqa.selenium.bidi.network.AddInterceptParameters;
+import org.openqa.selenium.bidi.network.BeforeRequestSent;
+import org.openqa.selenium.bidi.network.BytesValue;
+import org.openqa.selenium.bidi.network.ContinueRequestParameters;
+import org.openqa.selenium.bidi.network.Header;
+import org.openqa.selenium.bidi.network.InterceptPhase;
+import org.openqa.selenium.bidi.network.ProvideResponseParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Intercepts the browser's network traffic to simulate backend failures, slow responses or blocked third parties,
- * without touching the application under test. Works on Chromium browsers (Chrome, Edge), also on Selenium Grid
- * (it uses the DevTools protocol). Scenario-scoped: every rule is removed when the scenario ends.
+ * without touching the application under test. It uses WebDriver BiDi, so it works on Chrome, Edge and Firefox,
+ * locally and on Selenium Grid, and does not depend on the browser version (it needs
+ * {@code autto.browser.console-logs: true}, the default, which opens the BiDi session).
+ *
+ * <p>Scenario-scoped: every rule is removed when the scenario ends.
  *
  * <pre>{@code
  * network.stub("/api/cart", 500, "{\"error\":\"boom\"}");   // the UI must show an error banner
@@ -25,8 +37,16 @@ import org.openqa.selenium.remote.http.Route;
  */
 public class NetworkMock implements AutoCloseable {
 
-    private final List<Rule> rules = new ArrayList<>();
-    private NetworkInterceptor interceptor;
+    private static final Logger LOG = LoggerFactory.getLogger(NetworkMock.class);
+    private static final ExecutorService WORKERS = Executors.newCachedThreadPool(task -> {
+        Thread thread = new Thread(task, "autto-network-mock");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    private final List<Rule> rules = new CopyOnWriteArrayList<>();
+    private Network network;
+    private String interceptId;
 
     /** Answers every request whose URL contains {@code urlPart} with the given status and JSON body. */
     public void stub(String urlPart, int status, String jsonBody) {
@@ -34,54 +54,146 @@ public class NetworkMock implements AutoCloseable {
     }
 
     public void stub(String urlPart, int status, String contentType, String body) {
-        add(new Rule(request -> request.getUri().contains(urlPart), () -> new HttpResponse().setStatus(status)
-                .addHeader("Content-Type", contentType).setContent(Contents.utf8String(body))));
+        add(new Rule(urlPart, Action.respond(status, contentType, body)));
     }
 
     /** Fails every request whose URL contains {@code urlPart}, as if the host were unreachable. */
     public void block(String urlPart) {
-        stub(urlPart, 503, "text/plain", "blocked by Autto");
+        add(new Rule(urlPart, Action.fail()));
     }
 
-    /** Answers with the given status and an empty body after {@code delay}. */
+    /** Lets the matching requests through, {@code delay} later (slow backends, loading indicators). */
     public void delay(String urlPart, Duration delay) {
-        add(new Rule(request -> request.getUri().contains(urlPart), () -> {
-            sleep(delay);
-            return new HttpResponse().setStatus(200).setContent(Contents.utf8String(""));
-        }));
+        add(new Rule(urlPart, Action.delay(delay)));
     }
 
     /** Removes every rule and stops intercepting. */
     @Override
     public void close() {
         rules.clear();
-        stopInterceptor();
-    }
-
-    private void add(Rule rule) {
-        rules.add(rule);
-        stopInterceptor();
-        List<Routable> routes = rules.stream()
-                .<Routable>map(r -> Route.matching(r.matches()).to(() -> request -> r.response().get()))
-                .toList();
-        interceptor = new NetworkInterceptor(DriverManager.driver(), Route.combine(routes));
-    }
-
-    private void stopInterceptor() {
-        if (interceptor != null) {
-            interceptor.close();
-            interceptor = null;
+        if (network == null) {
+            return;
+        }
+        try {
+            if (interceptId != null) {
+                network.removeIntercept(interceptId);
+            }
+            network.close();
+        } catch (RuntimeException e) {
+            LOG.debug("Network interception did not stop cleanly: {}", e.getMessage());
+        } finally {
+            network = null;
+            interceptId = null;
         }
     }
 
-    private static void sleep(Duration delay) {
+    /** What to do with a request: the first rule whose text is contained in the URL wins. */
+    static Optional<Action> decide(List<Rule> rules, String url) {
+        return rules.stream().filter(rule -> url.contains(rule.urlPart())).map(Rule::action).findFirst();
+    }
+
+    private synchronized void add(Rule rule) {
+        rules.add(rule);
+        if (network != null) {
+            return;
+        }
+        WebDriver driver = DriverManager.driver();
         try {
-            java.util.concurrent.TimeUnit.MILLISECONDS.sleep(delay.toMillis());
+            network = new Network(driver);
+        } catch (RuntimeException e) {
+            rules.clear();
+            throw new IllegalStateException("Network mocking needs a WebDriver BiDi session: keep "
+                    + "autto.browser.console-logs enabled and use Chrome, Edge or Firefox", e);
+        }
+        interceptId = network.addIntercept(new AddInterceptParameters(InterceptPhase.BEFORE_REQUEST_SENT));
+        network.onBeforeRequestSent(this::handle);
+    }
+
+    /**
+     * Events arrive on the WebSocket reader thread, which must stay free to receive the answers to the commands
+     * sent while handling them: each request is therefore handled on a worker thread.
+     */
+    private void handle(BeforeRequestSent event) {
+        if (event.isBlocked()) {
+            WORKERS.execute(() -> process(event));
+        }
+    }
+
+    private void process(BeforeRequestSent event) {
+        String id = event.getRequest().getRequestId();
+        Network module = network;
+        if (module == null) {
+            return;
+        }
+        try {
+            Optional<Action> action = decide(rules, event.getRequest().getUrl());
+            if (action.isEmpty()) {
+                module.continueRequest(new ContinueRequestParameters(id));
+            } else if (action.get() instanceof Action.Fail) {
+                module.failRequest(id);
+            } else if (action.get() instanceof Action.Respond respond) {
+                module.provideResponse(new ProvideResponseParameters(id).statusCode(respond.status())
+                        .headers(List.of(new Header("Content-Type",
+                                new BytesValue(BytesValue.Type.STRING, respond.contentType()))))
+                        .body(new BytesValue(BytesValue.Type.STRING, respond.body())));
+            } else if (action.get() instanceof Action.Delay delay) {
+                pause(delay.duration());
+                release(module, id);
+            }
+        } catch (RuntimeException e) {
+            LOG.debug("Request {} could not be intercepted: {}", id, e.getMessage());
+        }
+    }
+
+    private static void release(Network module, String id) {
+        try {
+            module.continueRequest(new ContinueRequestParameters(id));
+        } catch (RuntimeException e) {
+            LOG.debug("Delayed request {} could not be released: {}", id, e.getMessage());
+        }
+    }
+
+    private static void pause(Duration delay) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(delay.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
-    private record Rule(Predicate<HttpRequest> matches, java.util.function.Supplier<HttpResponse> response) {
+    /** A rule: requests whose URL contains the text get the action. */
+    record Rule(String urlPart, Action action) {
+    }
+
+    /** How a matching request is handled. */
+    sealed interface Action {
+
+        static Action respond(int status, String contentType, String body) {
+            return new Respond(status, contentType, body);
+        }
+
+        static Action fail() {
+            return new Fail();
+        }
+
+        static Action delay(Duration duration) {
+            return new Delay(duration);
+        }
+
+        /** Answer with a canned response. */
+        record Respond(int status, String contentType, String body) implements Action {
+        }
+
+        /** Fail the request. */
+        record Fail() implements Action {
+        }
+
+        /** Let the request through later. */
+        record Delay(Duration duration) implements Action {
+        }
+    }
+
+    List<Rule> rules() {
+        return new ArrayList<>(rules);
     }
 }

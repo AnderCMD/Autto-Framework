@@ -14,11 +14,17 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
 import com.aventstack.extentreports.Status;
 
 /**
@@ -37,13 +43,46 @@ import com.aventstack.extentreports.Status;
  */
 public final class VisualRegression {
 
+    private static final Duration STABILITY_TIMEOUT = Duration.ofSeconds(5);
+
     private VisualRegression() {
     }
 
     /** Compares the current viewport against the baseline {@code name}. */
     public static void assertMatches(String name, Rectangle... ignoredAreas) {
-        byte[] png = ((TakesScreenshot) DriverManager.driver()).getScreenshotAs(OutputType.BYTES);
-        assertMatches(name, png, AuttoSettings.get().properties().visual(), ignoredAreas);
+        assertMatches(name, stableScreenshot(), AuttoSettings.get().properties().visual(), ignoredAreas);
+    }
+
+    /**
+     * Screenshot of a settled page: waits for web fonts and then for two consecutive screenshots to be identical,
+     * so animations, late layout shifts and font swaps do not produce false differences.
+     */
+    static byte[] stableScreenshot() {
+        WebDriver driver = DriverManager.driver();
+        ((JavascriptExecutor) driver).executeAsyncScript(
+                "const done = arguments[arguments.length - 1];"
+                        + "(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => done(true));");
+        TakesScreenshot camera = (TakesScreenshot) driver;
+        byte[] previous = camera.getScreenshotAs(OutputType.BYTES);
+        Instant deadline = Instant.now().plus(STABILITY_TIMEOUT);
+        while (Instant.now().isBefore(deadline)) {
+            pause();
+            byte[] current = camera.getScreenshotAs(OutputType.BYTES);
+            if (Arrays.equals(previous, current)) {
+                return current;
+            }
+            previous = current;
+        }
+        return previous;
+    }
+
+    private static void pause() {
+        try {
+            TimeUnit.MILLISECONDS.sleep(250);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for the page to settle", e);
+        }
     }
 
     static void assertMatches(String name, byte[] actualPng, AuttoProperties.Visual config, Rectangle... ignored) {

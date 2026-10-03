@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    One JSON object per line (JSON Lines) with the scenario and its correlation id, ready for Datadog, ELK, Loki...
+    Enable it without changing the project:  -Dlogback.configurationFile=autto/logback-json.xml
+    Secrets registered with Secrets.register(...) are masked by %maskedMsg.
+-->
+<configuration>
+    <conversionRule conversionWord="maskedMsg"
+                    class="io.github.andercmd.autto.core.security.MaskingMessageConverter"/>
+
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>{"time":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}","level":"%level","thread":"%thread","scenario":"%replace(%X{scenario:-}){'"','\\"'}","correlationId":"%X{correlationId:-}","logger":"%logger","message":"%replace(%maskedMsg){'["\\]','\\$0'}"}%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.openqa.selenium" level="WARN"/>
+    <logger name="io.github.bonigarcia" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

@@ -5,7 +5,7 @@
                     class="io.github.andercmd.autto.core.security.MaskingMessageConverter"/>
 
     <property name="LOG_DIR" value="${autto.report.dir:-target/autto-reports}/logs"/>
-    <property name="PATTERN" value="%d{HH:mm:ss.SSS} %-5level [%thread] [%X{scenario:-}] %logger{24} - %maskedMsg%n"/>
+    <property name="PATTERN" value="%d{HH:mm:ss.SSS} %-5level [%thread] [%X{scenario:-}] [%X{correlationId:-}] %logger{24} - %maskedMsg%n"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
