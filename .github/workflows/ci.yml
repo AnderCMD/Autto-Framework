@@ -27,7 +27,7 @@ jobs:
     name: Framework checks (unit tests + report pipeline)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ env.JAVA_RELEASE }}
         uses: oracle-actions/setup-java@v1
@@ -71,7 +71,7 @@ jobs:
             browser: safari
             experimental: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ env.JAVA_RELEASE }}
         uses: oracle-actions/setup-java@v1
