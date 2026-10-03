@@ -69,4 +69,34 @@ class RunMetricsTest {
     void jsonEscapesControlCharacters() {
         assertThat(Notifier.json("a\"b\n\\")).isEqualTo("\"a\\\"b\\n\\\\\"");
     }
+
+    @Test
+    void sendPostsTheSummaryToTheWebhook() throws Exception {
+        com.sun.net.httpserver.HttpServer server =
+                com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        java.util.concurrent.atomic.AtomicReference<String> body = new java.util.concurrent.atomic.AtomicReference<>();
+        server.createContext("/hook", exchange -> {
+            body.set(new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            exchange.sendResponseHeaders(200, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/hook";
+
+            Notifier.send(new AuttoProperties.Notifications(url, "slack", true, null), new RunMetrics());
+            assertThat(body.get()).as("nothing ran: nothing sent").isNull();
+
+            Notifier.send(new AuttoProperties.Notifications(url, "slack", true, null), sample());
+            assertThat(body.get()).contains("Autto run failed");
+
+            body.set(null);
+            RunMetrics green = new RunMetrics();
+            green.scenarioFinished(RunMetrics.Outcome.PASSED, Duration.ofSeconds(1), false);
+            Notifier.send(new AuttoProperties.Notifications(url, "slack", true, null), green);
+            assertThat(body.get()).as("only-on-failure").isNull();
+        } finally {
+            server.stop(0);
+        }
+    }
 }

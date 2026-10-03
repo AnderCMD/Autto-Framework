@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SpotBugs exclusions. Keep it short and explain every entry. -->
+<FindBugsFilter>
+    <!-- Records expose their components on purpose (configuration objects bound by Spring Boot). -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- Tests: mocks, intentionally broken inputs. -->
+    <Match>
+        <Class name="~.*Test.*"/>
+    </Match>
+</FindBugsFilter>
