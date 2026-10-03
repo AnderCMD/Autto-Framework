@@ -1,5 +1,6 @@
 package io.github.andercmd.autto.core.driver;
 
+import io.github.andercmd.autto.core.observability.RunMetrics;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ final class StartRetry {
                 if (attempt >= retries) {
                     throw e;
                 }
+                RunMetrics.global().browserStartRetried();
                 LOG.warn("Browser session could not be created (attempt {} of {}): {}. Retrying in {} ms",
                         attempt + 1, retries + 1, firstLine(e), pause.toMillis());
                 sleep(pause);
