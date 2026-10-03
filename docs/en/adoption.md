@@ -65,7 +65,7 @@ Recommended additions: Selenium Grid or a cloud vendor (`grid` / `browserstack` 
 </repositories>
 ```
 
-Coordinates: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (e.g. `v1.1.0`), compiled for Java 21+.
+Coordinates: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (e.g. `v1.1.1`), compiled for Java 21+.
 
 **Internal repository (Nexus, Artifactory, GitHub Packages, Azure Artifacts).** Recommended for companies: you
 control availability and can scan the artifact.
@@ -81,7 +81,7 @@ Import the Autto BOM so Selenium, Cucumber, Spring Boot and JUnit get the versio
 
 ```xml
 <properties>
-    <autto.version>v1.1.0</autto.version>   <!-- io.github.andercmd:1.1.0 in an internal repository -->
+    <autto.version>v1.1.1</autto.version>   <!-- io.github.andercmd:1.1.1 in an internal repository -->
 </properties>
 
 <dependencyManagement>

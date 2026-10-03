@@ -67,7 +67,7 @@ beans de API para los datos de prueba.
 </repositories>
 ```
 
-Coordenadas: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (p. ej. `v1.1.0`), compilado para Java 21+.
+Coordenadas: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (p. ej. `v1.1.1`), compilado para Java 21+.
 
 **Repositorio interno (Nexus, Artifactory, GitHub Packages, Azure Artifacts).** Recomendado para empresas: controlas
 la disponibilidad y puedes analizar el artefacto.
@@ -84,7 +84,7 @@ motor:
 
 ```xml
 <properties>
-    <autto.version>v1.1.0</autto.version>   <!-- io.github.andercmd:1.1.0 en un repositorio interno -->
+    <autto.version>v1.1.1</autto.version>   <!-- io.github.andercmd:1.1.1 en un repositorio interno -->
 </properties>
 
 <dependencyManagement>

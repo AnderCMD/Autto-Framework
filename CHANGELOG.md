@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-03
+
 ### Fixed
 
 - Nightly regression ran the `@demo-failure` scenario (it fails on purpose): the workflow tag expression now keeps
@@ -69,7 +71,8 @@ First stable release.
   browser console logs.
 - GitHub Actions matrix (Windows/macOS/Linux × Chrome/Firefox/Edge + Safari), nightly Grid and Docker regressions.
 
-[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/AnderCMD/Autto-Framework/releases/tag/v1.0.0
