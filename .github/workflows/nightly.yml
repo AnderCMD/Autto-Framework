@@ -21,7 +21,7 @@ jobs:
       matrix:
         browser: [chrome, firefox, edge]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: oracle-actions/setup-java@v1
         with:
@@ -47,7 +47,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autto-nightly-grid-${{ matrix.browser }}
           path: autto-e2e/target/autto-reports
@@ -61,7 +61,7 @@ jobs:
       matrix:
         browser: [chrome, firefox]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: oracle-actions/setup-java@v1
         with:
@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autto-nightly-docker-${{ matrix.browser }}
           path: autto-e2e/target/autto-reports

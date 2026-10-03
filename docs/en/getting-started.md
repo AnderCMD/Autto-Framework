@@ -7,7 +7,7 @@
 | Tool | Version | Notes |
 |---|---|---|
 | JDK | 27 (or ≥ 21 with `-Djava.version=<n>`) | Java 27 GA is planned for March 2027. Until then use an [Early Access build](https://jdk.java.net/27/). |
-| Maven | not required | The Maven Wrapper (`./mvnw`, `mvnw.cmd`) downloads Maven 3.9.16. |
+| Maven | not required | The Maven Wrapper (`./mvnw`, `mvnw.cmd`) downloads Maven 3.10.0. |
 | Browser | any of Chrome, Chromium, Firefox, Edge, Safari | Drivers are resolved automatically (WebDriverManager → Selenium Manager). |
 | Docker | optional | Browsers in containers (`docker` profile) or local Selenium Grid. |
 | Appium 2+ | optional | Mobile (`autto.execution.target=appium`). |

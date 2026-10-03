@@ -49,7 +49,7 @@ negocio. Navegadores, drivers, secretos, paralelismo, evidencias y reportes ya e
 | JUnit Platform | 6.1.3 |
 | Extent Reports | 5.1.2 |
 | Checkstyle | 14.3.0 |
-| Maven (wrapper) | 3.9.16 |
+| Maven (wrapper) | 3.10.0 |
 
 > **Sobre Java 27.** Su versión estable (GA) está prevista para marzo de 2027. Mientras tanto instala una
 > [build Early Access](https://jdk.java.net/27/) o compila con cualquier JDK ≥ 21 usando `-Djava.version=25` (o 21).

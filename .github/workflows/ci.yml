@@ -31,7 +31,7 @@ jobs:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Scan the repository history for leaked secrets
@@ -43,7 +43,7 @@ jobs:
     name: Build · checkstyle · unit tests · report pipeline
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ env.JAVA_RELEASE }}
         uses: oracle-actions/setup-java@v1
@@ -52,7 +52,7 @@ jobs:
           release: ${{ env.JAVA_RELEASE }}
 
       - name: Cache Maven repository
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autto-report-showcase
           path: autto-e2e/target/autto-reports
@@ -84,7 +84,7 @@ jobs:
             browser: safari
             experimental: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ env.JAVA_RELEASE }}
         uses: oracle-actions/setup-java@v1
@@ -93,7 +93,7 @@ jobs:
           release: ${{ env.JAVA_RELEASE }}
 
       - name: Cache Maven repository
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autto-report-${{ matrix.os }}-${{ matrix.browser }}
           path: autto-e2e/target/autto-reports

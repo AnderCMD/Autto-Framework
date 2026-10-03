@@ -7,7 +7,7 @@
 | Herramienta | Versión | Notas |
 |---|---|---|
 | JDK | 27 (o ≥ 21 con `-Djava.version=<n>`) | Java 27 GA está prevista para marzo de 2027. Mientras tanto usa una [build Early Access](https://jdk.java.net/27/). |
-| Maven | no requerido | El Maven Wrapper (`./mvnw`, `mvnw.cmd`) descarga Maven 3.9.16. |
+| Maven | no requerido | El Maven Wrapper (`./mvnw`, `mvnw.cmd`) descarga Maven 3.10.0. |
 | Navegador | Chrome, Chromium, Firefox, Edge o Safari | Los drivers se resuelven solos (WebDriverManager → Selenium Manager). |
 | Docker | opcional | Navegadores en contenedores (perfil `docker`) o Selenium Grid local. |
 | Appium 2+ | opcional | Móvil (`autto.execution.target=appium`). |

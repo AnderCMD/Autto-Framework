@@ -49,7 +49,7 @@ parallelism, evidence and reports are already solved.
 | JUnit Platform | 6.1.3 |
 | Extent Reports | 5.1.2 |
 | Checkstyle | 14.3.0 |
-| Maven (wrapper) | 3.9.16 |
+| Maven (wrapper) | 3.10.0 |
 
 > **About Java 27.** Its General Availability is scheduled for March 2027. Until then install an
 > [Early Access build](https://jdk.java.net/27/) or build with any JDK ≥ 21 using `-Djava.version=25` (or 21).
