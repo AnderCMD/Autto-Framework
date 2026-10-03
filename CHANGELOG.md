@@ -9,6 +9,11 @@ All notable changes to this project are documented here. The format follows
 
 First stable release.
 
+### Fixed
+
+- Local browsers failed to start with `Browser version must be set` when WebDriverManager resolved the driver
+  (Selenium 4.50 rejects `setBrowserVersion(null)`). Covered by `DriverFactoryTest`.
+
 ### Added
 
 - **Spring Boot 4.1** as the test platform (`cucumber-spring`): `autto-core` is an auto-configuration, page objects

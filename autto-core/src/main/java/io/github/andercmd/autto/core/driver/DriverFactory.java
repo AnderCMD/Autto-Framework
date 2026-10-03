@@ -68,14 +68,7 @@ public final class DriverFactory {
 
     private static DriverHandle local(BrowserType browser, AuttoSettings settings) {
         DriverResolver.Resolution resolution = DriverResolver.resolve(browser, settings.properties());
-        AbstractDriverOptions<?> options = BrowserOptionsFactory.create(browser, settings);
-        if (resolution.strategy() == DriverResolver.Strategy.WEBDRIVERMANAGER) {
-            // the driver version comes from the installed browser; never ask Selenium Manager for another one
-            options.setBrowserVersion(null);
-        }
-        if (browser == BrowserType.CHROMIUM && settings.properties().browser().binary() == null) {
-            resolution.browserPath().ifPresent(path -> ((ChromeOptions) options).setBinary(path.toFile()));
-        }
+        AbstractDriverOptions<?> options = localOptions(browser, settings, resolution);
         String name = browser.name().toLowerCase(Locale.ROOT);
         LOG.info("Starting local {} (driver: {})", name, resolution.strategy().name().toLowerCase(Locale.ROOT));
         WebDriver driver = switch (browser) {
@@ -85,6 +78,19 @@ public final class DriverFactory {
             case SAFARI -> new SafariDriver((SafariOptions) options);
         };
         return DriverHandle.of(driver, "local " + name);
+    }
+
+    /**
+     * Options of a local browser. When WebDriverManager resolved the driver no browser version is requested (the
+     * driver matches the installed browser); a requested version always goes through Selenium Manager.
+     */
+    static AbstractDriverOptions<?> localOptions(BrowserType browser, AuttoSettings settings,
+            DriverResolver.Resolution resolution) {
+        AbstractDriverOptions<?> options = BrowserOptionsFactory.create(browser, settings);
+        if (browser == BrowserType.CHROMIUM && settings.properties().browser().binary() == null) {
+            resolution.browserPath().ifPresent(path -> ((ChromeOptions) options).setBinary(path.toFile()));
+        }
+        return options;
     }
 
     private static DriverHandle docker(BrowserType browser, AuttoSettings settings) {
