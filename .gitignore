@@ -26,3 +26,7 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local AI tooling (graphify knowledge graph, assistant settings)
+graphify-out/
+.claude/settings.local.json

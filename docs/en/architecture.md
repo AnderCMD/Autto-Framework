@@ -28,7 +28,8 @@ autto-e2e/src/test/java/io/github/andercmd/autto/e2e/
 └── features/
     ├── login/       LoginPage, LoginSteps
     ├── inventory/   InventoryPage, InventorySteps
-    └── checkout/    CartPage, CheckoutPage, CheckoutSteps, Customer
+    ├── checkout/    CartPage, CheckoutPage, CheckoutSteps, Customer
+    └── showcase/    ReportShowcaseSteps (Report API demo)
 
 autto-e2e/src/test/resources/
 ├── application.yml, application-<profile>.yml

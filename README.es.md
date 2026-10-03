@@ -99,7 +99,8 @@ Autto-Framework
         │   └── features/           UNA CARPETA POR FUNCIONALIDAD DE NEGOCIO
         │       ├── login/      LoginPage, LoginSteps
         │       ├── inventory/  InventoryPage, InventorySteps
-        │       └── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        │       ├── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        │       └── showcase/   ReportShowcaseSteps (demo de la API de reportes)
         └── resources/
             ├── application.yml + application-{qa,staging,prod,ci,docker,grid,browserstack}.yml
             ├── features/<feature>/*.feature

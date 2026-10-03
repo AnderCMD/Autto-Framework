@@ -5,14 +5,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-03
-
-First stable release.
+## [1.0.1] - 2026-10-03
 
 ### Fixed
 
 - Local browsers failed to start with `Browser version must be set` when WebDriverManager resolved the driver
   (Selenium 4.50 rejects `setBrowserVersion(null)`). Covered by `DriverFactoryTest`.
+
+## [1.0.0] - 2026-10-03
+
+First stable release.
 
 ### Added
 
@@ -33,5 +35,6 @@ First stable release.
   browser console logs.
 - GitHub Actions matrix (Windows/macOS/Linux × Chrome/Firefox/Edge + Safari), nightly Grid and Docker regressions.
 
-[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/AnderCMD/Autto-Framework/releases/tag/v1.0.0

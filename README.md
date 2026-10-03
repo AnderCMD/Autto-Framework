@@ -99,7 +99,8 @@ Autto-Framework
         │   └── features/           ONE FOLDER PER BUSINESS FEATURE
         │       ├── login/      LoginPage, LoginSteps
         │       ├── inventory/  InventoryPage, InventorySteps
-        │       └── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        │       ├── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        │       └── showcase/   ReportShowcaseSteps (Report API demo)
         └── resources/
             ├── application.yml + application-{qa,staging,prod,ci,docker,grid,browserstack}.yml
             ├── features/<feature>/*.feature
