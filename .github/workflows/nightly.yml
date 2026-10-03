@@ -11,8 +11,25 @@ permissions:
 env:
   MAVEN_ARGS: -B -ntp
   SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD || 'secret_sauce' }}
+  # Optional: a Slack / Teams incoming webhook secret enables the run summary (only sent when something failed).
+  AUTTO_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.AUTTO_NOTIFICATIONS_WEBHOOK_URL }}
+  AUTTO_NOTIFICATIONS_TYPE: ${{ vars.AUTTO_NOTIFICATIONS_TYPE || 'slack' }}
+  AUTTO_NOTIFICATIONS_ONLY_ON_FAILURE: "true"
+  AUTTO_NOTIFICATIONS_REPORT_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
 jobs:
+  vulnerabilities:
+    name: Dependency vulnerabilities (OSV)
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    with:
+      scan-args: |-
+        --recursive
+        ./
+
   grid:
     name: Regression · Selenium Grid · ${{ matrix.browser }}
     runs-on: ubuntu-latest
@@ -21,9 +38,9 @@ jobs:
       matrix:
         browser: [chrome, firefox, edge]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: oracle-actions/setup-java@v1
+      - uses: oracle-actions/setup-java@fff43251af9936a0e6a4d5d0946e14f1680e9b6b # v1.5.0
         with:
           website: jdk.java.net
           release: "27"
@@ -31,14 +48,18 @@ jobs:
       - name: Start Selenium Grid
         run: docker compose up -d --wait
 
-      - name: Run regression in parallel against the grid
+      - name: Build the framework
+        run: ./mvnw install -DskipTests
+
+      - name: Run regression in parallel against the grid (failed scenarios are rerun once)
         env:
           SPRING_PROFILES_ACTIVE: qa,ci,grid
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
         run: >
-          ./mvnw install
+          ./scripts/run-with-rerun.sh
           -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
           -Dcucumber.execution.parallel.enabled=true
+          -Dcucumber.execution.parallel.config.strategy=fixed
           -Dcucumber.execution.parallel.config.fixed.parallelism=2
 
       - name: Stop Selenium Grid
@@ -47,10 +68,12 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: autto-nightly-grid-${{ matrix.browser }}
-          path: autto-e2e/target/autto-reports
+          path: |
+            autto-e2e/target/autto-reports
+            autto-e2e/target/autto-reports-rerun
           retention-days: 30
 
   docker-browsers:
@@ -61,23 +84,63 @@ jobs:
       matrix:
         browser: [chrome, firefox]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: oracle-actions/setup-java@v1
+      - uses: oracle-actions/setup-java@fff43251af9936a0e6a4d5d0946e14f1680e9b6b # v1.5.0
         with:
           website: jdk.java.net
           release: "27"
 
-      - name: Run regression with containerized browsers
+      - name: Build the framework
+        run: ./mvnw install -DskipTests
+
+      - name: Run regression with containerized browsers (failed scenarios are rerun once)
         env:
           SPRING_PROFILES_ACTIVE: qa,ci,docker
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
-        run: ./mvnw install -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
+        run: >
+          ./scripts/run-with-rerun.sh
+          -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: autto-nightly-docker-${{ matrix.browser }}
-          path: autto-e2e/target/autto-reports
+          path: |
+            autto-e2e/target/autto-reports
+            autto-e2e/target/autto-reports-rerun
           retention-days: 30
+
+  # Keeps every nightly report on the gh-pages branch (runs/<number>/) with an index of the history.
+  # Enable it in Settings → Pages → Deploy from a branch → gh-pages. Reports are public when the repository is public.
+  publish-reports:
+    name: Publish reports to GitHub Pages
+    if: always() && github.ref == 'refs/heads/main' && vars.PUBLISH_REPORTS == 'true'
+    needs: [grid, docker-browsers]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          path: pages
+        continue-on-error: true
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: reports
+          pattern: autto-nightly-*
+
+      - name: Add this run to the history
+        run: ./scripts/publish-reports.sh reports pages "${{ github.run_number }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Push
+        working-directory: pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Nightly report ${{ github.run_number }}" || exit 0
+          git push origin HEAD:gh-pages

@@ -1,0 +1,29 @@
+{
+  "name": "Autto Framework",
+  // JDK 21 (LTS) works everywhere; the project targets Java 27, so the container builds with -Djava.version=21.
+  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+  "features": {
+    // lets "docker-fallback" and the docker target start browsers as sibling containers
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "containerEnv": {
+    "MAVEN_ARGS": "-B -ntp -Djava.version=21",
+    "AUTTO_BROWSER_NAME": "chromium",
+    "AUTTO_BROWSER_HEADLESS": "true",
+    "SPRING_PROFILES_ACTIVE": "qa"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-spring-boot-dev-pack",
+        "alexkrechik.cucumberautocomplete",
+        "redhat.vscode-yaml",
+        "editorconfig.editorconfig"
+      ]
+    }
+  },
+  "forwardPorts": [4444, 8025]
+}

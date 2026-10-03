@@ -31,7 +31,7 @@ jobs:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Scan the repository history for leaked secrets
@@ -44,67 +44,99 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fail on new dependencies with high or critical vulnerabilities
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
           fail-on-severity: high
 
-  build:
-    name: Build · checkstyle · unit tests · report pipeline
+  # Pull requests get fast feedback (Linux + Chrome); pushes to main and manual runs get the full OS x browser matrix.
+  plan:
+    name: Plan the end-to-end matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v7
+      - id: matrix
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'matrix={"include":[{"os":"ubuntu-latest","browser":"chrome"}]}' >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix={"os":["ubuntu-latest","windows-latest","macos-latest"],"browser":["chrome","firefox","edge"],"include":[{"os":"macos-latest","browser":"safari","experimental":true}]}' >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Set up JDK ${{ env.JAVA_RELEASE }}
-        uses: oracle-actions/setup-java@v1
+  build:
+    name: Build · JDK ${{ matrix.java }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # 21 and 25 are the LTS releases users run today; 27 is the target of the project (early access until 2027).
+        java: ["21", "25", "27"]
+        include:
+          - java: "27"
+            experimental: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK ${{ matrix.java }} (Temurin)
+        if: matrix.java != '27'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up JDK 27 (early access)
+        if: matrix.java == '27'
+        uses: oracle-actions/setup-java@fff43251af9936a0e6a4d5d0946e14f1680e9b6b # v1.5.0
         with:
           website: jdk.java.net
-          release: ${{ env.JAVA_RELEASE }}
+          release: "27"
 
       - name: Cache Maven repository
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: maven-${{ runner.os }}-
 
-      - name: Verify (enforcer, checkstyle, unit tests, browser-less scenarios)
-        run: ./mvnw verify -Dcucumber.filter.tags=@showcase
+      - name: Verify (enforcer, checkstyle, unit tests, coverage gate, browser-less scenarios)
+        run: ./mvnw verify -Pcoverage -Djava.version=${{ matrix.java }} -Dcucumber.filter.tags=@showcase
+
+      - name: Static analysis (SpotBugs)
+        if: matrix.java == '21'
+        run: ./mvnw verify -Pquality -DskipTests -Djava.version=21
 
       - name: Upload report
-        if: always()
-        uses: actions/upload-artifact@v7
+        if: always() && matrix.java == '21'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: autto-report-showcase
-          path: autto-e2e/target/autto-reports
+          path: |
+            autto-e2e/target/autto-reports
+            autto-core/target/site/jacoco
           retention-days: 14
 
   e2e:
     name: E2E · ${{ matrix.os }} · ${{ matrix.browser }}
-    needs: build
+    needs: [plan, build]
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        browser: [chrome, firefox, edge]
-        include:
-          - os: macos-latest
-            browser: safari
-            experimental: true
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK ${{ env.JAVA_RELEASE }}
-        uses: oracle-actions/setup-java@v1
+        uses: oracle-actions/setup-java@fff43251af9936a0e6a4d5d0946e14f1680e9b6b # v1.5.0
         with:
           website: jdk.java.net
           release: ${{ env.JAVA_RELEASE }}
 
       - name: Cache Maven repository
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
@@ -114,20 +146,28 @@ jobs:
         if: matrix.browser == 'safari'
         run: sudo safaridriver --enable
 
-      - name: Run scenarios
+      - name: Build the framework
+        shell: bash
+        run: ./mvnw install -DskipTests
+
+      # Failed scenarios are run once more: a scenario that passes on the second try is reported as flaky
+      # (autto-reports-rerun) instead of turning the build red; one that fails twice fails the build.
+      - name: Run scenarios (with rerun of failures)
         shell: bash
         env:
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
           AUTTO_BROWSER_HEADLESS: ${{ matrix.browser != 'safari' }}
         run: >
-          ./mvnw install
+          ./scripts/run-with-rerun.sh
           -Dcucumber.filter.tags="${{ github.event.inputs.tags || '@smoke' }}"
           -Dautto.report.info.Runner="${{ matrix.os }}"
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: autto-report-${{ matrix.os }}-${{ matrix.browser }}
-          path: autto-e2e/target/autto-reports
+          path: |
+            autto-e2e/target/autto-reports
+            autto-e2e/target/autto-reports-rerun
           retention-days: 14
