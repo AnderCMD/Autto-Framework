@@ -16,6 +16,11 @@
       "description": "Extra rows of the report dashboard environment table."
     },
     {
+      "name": "autto.api.headers",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Default HTTP headers of every API request, e.g. Authorization: Bearer ${API_TOKEN}. Values of sensitive headers are masked in the report."
+    },
+    {
       "name": "autto.dotenv.path",
       "type": "java.lang.String",
       "description": "Explicit location of the .env file (also AUTTO_DOTENV_PATH). By default it is searched in the working directory and up to three parent folders."
@@ -29,6 +34,11 @@
     {
       "name": "autto.browser.window-size",
       "values": [{"value": "maximized"}, {"value": "1920x1080"}, {"value": "1366x768"}]
+    },
+    {
+      "name": "autto.accessibility.tags",
+      "values": [{"value": "wcag2a"}, {"value": "wcag2aa"}, {"value": "wcag21a"}, {"value": "wcag21aa"},
+                 {"value": "wcag22aa"}, {"value": "best-practice"}]
     },
     {
       "name": "autto.appium.platform",

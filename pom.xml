@@ -6,7 +6,7 @@
 
     <groupId>io.github.andercmd</groupId>
     <artifactId>autto-parent</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
 
     <name>Autto Framework</name>
@@ -69,6 +69,8 @@
         <extentreports.version>5.1.2</extentreports.version>
         <datafaker.version>2.7.0</datafaker.version>
         <jcodec.version>0.2.5</jcodec.version>
+        <rest-assured.version>6.0.1</rest-assured.version>
+        <axe-core.version>4.13.0</axe-core.version>
 
         <!-- Quality -->
         <checkstyle.version>14.3.0</checkstyle.version>
@@ -162,6 +164,16 @@
                 <groupId>org.jcodec</groupId>
                 <artifactId>jcodec-javase</artifactId>
                 <version>${jcodec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured</artifactId>
+                <version>${rest-assured.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.deque.html.axe-core</groupId>
+                <artifactId>selenium</artifactId>
+                <version>${axe-core.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

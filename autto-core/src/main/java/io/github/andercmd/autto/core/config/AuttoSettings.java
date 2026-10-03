@@ -168,6 +168,11 @@ public final class AuttoSettings {
         return value == null || value.isBlank() ? Optional.empty() : Optional.of(value.trim());
     }
 
+    /** Default HTTP headers of the API client: {@code autto.api.headers.*}. */
+    public Map<String, String> apiHeaders() {
+        return subtree("autto.api.headers.");
+    }
+
     /** W3C / vendor capabilities: {@code autto.execution.capabilities.*}. */
     public Map<String, String> capabilities() {
         return subtree("autto.execution.capabilities.");

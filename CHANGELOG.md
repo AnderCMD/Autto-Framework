@@ -5,6 +5,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-03
+
+### Added
+
+- **API testing**: REST Assured 6 behind the `Api` bean (`autto.api.*`: base URL, default headers, timeouts,
+  relaxed HTTPS). Every request and response is attached to the report, collapsed, with sensitive headers and
+  secrets masked (`ApiReportFilter`). Demo feature `features/api`.
+- **Accessibility audits** with axe-core 4.13 (`Accessibility.scan()`, `AccessibilityResult.assertNoViolations()`),
+  WCAG tags, disabled rules and failing impact configurable in `autto.accessibility.*`. Demo feature
+  `features/accessibility`.
+- **Soft assertions**: scenario-scoped AssertJ `SoftAssertions` bean verified automatically at the end of every
+  scenario (`SoftAssertionHooks`), before the failure evidence is collected.
+- **Browser start retries** with exponential back-off (`autto.driver.start-retries`, `autto.driver.start-retry-delay`)
+  for busy Grids and cloud queues; configuration errors are never retried.
+- `BasePage` helpers: `waitForPageLoad`, `waitForUrlContains`, `waitForText`, `jsClick`, `doubleClick`,
+  `pressKeys`, `typeAndSubmit`, `upload`, frames, windows and alerts.
+- YAML test data (`TestData.load("x.yml")`) with the same `${NAME}` placeholders as JSON.
+- `Report.code(title, content, expanded)` for collapsed blocks.
+- JitPack build (`jitpack.yml`) so any project can depend on `autto-core` without a private repository.
+- Dependency review job in CI for pull requests (fails on new high/critical vulnerabilities).
+- Docs: adoption guide (starter, team, enterprise), API testing guide, ADR-005 to ADR-007, new configuration keys
+  and troubleshooting entries (English and Spanish).
+
+### Changed
+
+- AssertJ is now a compile dependency of `autto-core` (needed by the soft assertions bean).
+
 ## [1.0.1] - 2026-10-03
 
 ### Fixed
@@ -35,6 +62,7 @@ First stable release.
   browser console logs.
 - GitHub Actions matrix (Windows/macOS/Linux × Chrome/Firefox/Edge + Safari), nightly Grid and Docker regressions.
 
-[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/AnderCMD/Autto-Framework/releases/tag/v1.0.0

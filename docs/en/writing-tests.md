@@ -66,8 +66,16 @@ Rules (several are enforced by Checkstyle):
 - Public methods express intent or return data; **no assertions**.
 - Never store `WebElement` / `WebDriver`; call `driver()`.
 - No `Thread.sleep`, no `implicitlyWait`, no `System.out`.
-- Use `BasePage` helpers: `open`, `click`, `type`, `text`, `texts`, `visible`, `clickable`, `allVisible`,
-  `selectByText`, `hover`, `isDisplayed`, `waitUntil`, `js`; configuration via `config()`.
+- Use `BasePage` helpers instead of raw Selenium:
+
+| Need | Helpers |
+|---|---|
+| Navigation | `open`, `currentUrl`, `title`, `waitForPageLoad`, `waitForUrlContains` |
+| Waits | `visible`, `clickable`, `allVisible`, `waitForInvisibility`, `waitForText`, `waitUntil` |
+| Interactions | `click`, `jsClick` (last resort), `doubleClick`, `type`, `typeAndSubmit`, `pressKeys`, `selectByText`, `selectByValue`, `hover`, `scrollIntoView`, `upload` |
+| Reading | `text`, `texts`, `attribute`, `isDisplayed`, `count` |
+| Frames, windows, alerts | `switchToFrame`, `switchToDefaultContent`, `switchToNewWindow`, `switchToWindow`, `acceptAlert`, `dismissAlert` |
+| Anything else | `js`, `driver()`, configuration via `config()` |
 
 ## 4. Step definitions
 
@@ -94,7 +102,25 @@ public class SearchSteps {
 }
 ```
 
-Steps can inject pages, `ScenarioContext`, `TestUsers`, `AuttoProperties` or any bean of your own.
+Steps can inject pages, `ScenarioContext`, `SoftAssertions`, `Api`, `TestUsers`, `AuttoProperties` or any bean of
+your own.
+
+### Soft assertions
+
+Check several things and get **all** failures at once. The scenario-scoped `SoftAssertions` bean is verified
+automatically when the scenario ends (before the failure evidence is collected):
+
+```java
+public CartSteps(CartPage cart, SoftAssertions softly) { ... }
+
+@Then("the cart summary is correct")
+public void theCartSummaryIsCorrect() {
+    softly.assertThat(cart.count()).as("items").isEqualTo(2);
+    softly.assertThat(cart.total()).as("total").isEqualTo("$39.98");
+}
+```
+
+Use hard `assertThat` when the next steps make no sense after a failure (e.g. login).
 
 ## 5. Test users and secrets
 
@@ -126,24 +152,42 @@ String id = context.get("order.id", String.class);
 
 ```java
 List<Product> all = TestData.load("search/products.json", new TypeReference<List<Product>>() {});
+Customer vip = TestData.entry("checkout/customers.yml", "vip", Customer.class);   // YAML works too
 String email = TestData.faker().internet().emailAddress();
 ```
 
-JSON values support `${NAME}` / `${NAME:default}` placeholders resolved from `.env`, environment and configuration.
+JSON and YAML values support `${NAME}` / `${NAME:default}` placeholders resolved from `.env`, environment and
+configuration.
 
-## 8. Your own beans (API clients, DB helpers…)
+## 7b. Accessibility checks
+
+```java
+Accessibility.scan().assertNoViolations();                       // whole page, fails on autto.accessibility.fail-on
+Accessibility.scan("#checkout-form").assertNoViolations(Impact.CRITICAL);   // one region, custom threshold
+```
+
+Every scan adds a table with the violated rules, impact and how to fix them to the report. The demo step
+`Then the page has no critical accessibility violations` is reusable from any feature.
+
+## 8. API calls and your own beans
+
+The `Api` bean (REST Assured with the `autto.api.*` defaults, report and masking) covers API tests and data set-up
+for UI scenarios — see [API testing](api-testing.md). Wrap the endpoints of your product in your own beans:
 
 ```java
 @Component
 public class OrdersApi {
-    private final RestClient client;
-    public OrdersApi(AuttoProperties props) {
-        this.client = RestClient.create(props.baseUrl() + "/api");   // add spring-web to autto-e2e
+    private final Api api;
+    public OrdersApi(Api api) { this.api = api; }
+
+    public String createOrder(Order order) {
+        return api.request().body(order).post("/orders").then().statusCode(201).extract().path("id");
     }
 }
 ```
 
-Use them in steps to create test data quickly or to verify back-end state.
+Database helpers, message clients or test-data builders are plain Spring beans too (add `spring-boot-starter-jdbc`
+or the client you need to `autto-e2e`).
 
 ## 9. Run your feature
 

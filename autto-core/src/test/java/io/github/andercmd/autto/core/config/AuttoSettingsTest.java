@@ -44,6 +44,28 @@ class AuttoSettingsTest {
         // untouched groups keep their defaults
         assertThat(props.driver().resolution()).isEqualTo(DriverResolution.WEBDRIVERMANAGER);
         assertThat(props.execution().target()).isEqualTo(ExecutionTarget.LOCAL);
+        assertThat(props.driver().startRetries()).isEqualTo(1);
+    }
+
+    @Test
+    void readsApiAndAccessibilityGroups() {
+        AuttoSettings settings = AuttoSettings.load(Map.of(), system());
+        AuttoProperties props = settings.properties();
+
+        assertThat(props.api().baseUrl()).isEqualTo("https://api.example.test");
+        assertThat(props.api().readTimeout()).isEqualTo(Duration.ofSeconds(5));
+        assertThat(props.api().connectTimeout()).isEqualTo(Duration.ofSeconds(10));
+        assertThat(props.api().report()).isTrue();
+        assertThat(settings.apiHeaders()).containsEntry("Accept", "application/json")
+                .containsEntry("X-Api-Key", "unit-test-api-key");
+        assertThat(props.accessibility().tags()).containsExactly("wcag2a");
+        assertThat(props.accessibility().failOn()).isEqualTo(AuttoProperties.Impact.CRITICAL);
+    }
+
+    @Test
+    void invalidRetriesAreRejected() {
+        assertThatThrownBy(() -> new AuttoProperties.Driver(null, null, null, null, 11, null))
+                .hasMessageContaining("autto.driver.start-retries");
     }
 
     @Test

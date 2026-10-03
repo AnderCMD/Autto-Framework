@@ -39,6 +39,17 @@ jobs:
           docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
           git /repo --redact --verbose --config /repo/.gitleaks.toml
 
+  dependency-review:
+    name: Dependency review (vulnerabilities and licenses)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fail on new dependencies with high or critical vulnerabilities
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
   build:
     name: Build · checkstyle · unit tests · report pipeline
     runs-on: ubuntu-latest

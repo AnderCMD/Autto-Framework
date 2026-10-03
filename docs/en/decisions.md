@@ -68,4 +68,39 @@ secret manager when the organization has one. Defence in depth:
 
 `autto-core` (versioned engine, publishable to a Maven repository) and `autto-e2e` (the suite of one application).
 Other teams create their own `*-e2e` project depending on `autto-core`, and engine improvements reach everybody by
-bumping one version.
+bumping one version. See [Adoption guide](adoption.md) for consuming `autto-core` through JitPack or an internal
+repository.
+
+## ADR-005 · REST Assured for API testing — **accepted**
+
+**Context.** Real suites mix UI and API: APIs prepare data in seconds, check back-end state and test services
+directly. QA teams need it built in, reported and masked like the UI part.
+
+**Options considered**
+
+| Option | Verdict |
+|---|---|
+| Spring `RestClient` | ✅ Light and already in the ecosystem, but not a testing DSL (no `then().statusCode()`, JSON path assertions). |
+| `java.net.http.HttpClient` | ❌ Too low level for test code. |
+| **REST Assured** | ✅ De-facto standard of API test automation, known by most QA engineers, fluent given/when/then DSL. |
+
+**Decision.** REST Assured behind the `Api` bean: base URL, default headers, timeouts and a filter that writes every
+exchange to the report with sensitive headers and secrets masked. **Cost:** Groovy and Apache HttpClient 4 on the
+test classpath (~10 MB), acceptable for a test framework.
+
+## ADR-006 · axe-core for accessibility — **accepted**
+
+**Context.** Accessibility (WCAG 2.1 AA, European Accessibility Act, ADA) is a legal requirement for many companies
+and is cheapest to catch in the same suite that already opens every page.
+
+**Decision.** Deque's `axe-core` Selenium integration (`Accessibility.scan()`), the most widely used open source
+engine, with WCAG tags and the failing impact configurable in `autto.accessibility.*`. Scans run only where a step asks
+for them, so they never slow down other scenarios.
+
+## ADR-007 · Resilience by default — **accepted**
+
+- **Browser start retries** (`autto.driver.start-retries`, exponential back-off): busy Grids and cloud queues fail
+  the session creation, not the test. Configuration errors are never retried.
+- **Soft assertions** verified automatically at the end of each scenario: all failures in one run.
+- **No retries of failed scenarios** inside the run: they hide real bugs. Re-run failures explicitly with
+  `rerun.txt` and investigate flakiness.

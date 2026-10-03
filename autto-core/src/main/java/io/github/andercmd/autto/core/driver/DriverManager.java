@@ -1,5 +1,6 @@
 package io.github.andercmd.autto.core.driver;
 
+import io.github.andercmd.autto.core.config.AuttoProperties;
 import io.github.andercmd.autto.core.config.AuttoSettings;
 import java.util.Optional;
 import org.openqa.selenium.WebDriver;
@@ -25,10 +26,16 @@ public final class DriverManager {
         return start(AuttoSettings.get());
     }
 
-    /** Starts a new browser for the current thread. Any previous browser of this thread is closed first. */
+    /**
+     * Starts a new browser for the current thread. Any previous browser of this thread is closed first. Failed
+     * starts are retried {@code autto.driver.start-retries} times.
+     */
     public static DriverSession start(AuttoSettings settings) {
         quit();
-        DriverSession session = new DriverSession(DriverFactory.create(settings), settings.properties());
+        AuttoProperties.Driver driver = settings.properties().driver();
+        DriverHandle handle = StartRetry.call(driver.startRetries(), driver.startRetryDelay(),
+                () -> DriverFactory.create(settings));
+        DriverSession session = new DriverSession(handle, settings.properties());
         SESSION.set(session);
         LOG.info("Session started: {} ({})", session.details().label(), session.description());
         return session;

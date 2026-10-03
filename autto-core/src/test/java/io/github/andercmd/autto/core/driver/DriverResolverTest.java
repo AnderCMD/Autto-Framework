@@ -15,8 +15,8 @@ class DriverResolverTest {
         return new AuttoProperties(null,
                 new AuttoProperties.Browser(b.name(), version, null, null, null, null, null, null, null, null, null,
                         null, null),
-                new AuttoProperties.Driver(resolution, null, null, null),
-                null, null, null, null, null, null);
+                new AuttoProperties.Driver(resolution, null, null, null, null, null),
+                null, null, null, null, null, null, null, null);
     }
 
     @Test

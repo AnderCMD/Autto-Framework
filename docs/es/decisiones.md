@@ -71,3 +71,39 @@ un gestor de secretos cuando la organización lo tenga. Defensa en profundidad:
 `autto-core` (motor versionado, publicable en un repositorio Maven) y `autto-e2e` (la suite de una aplicación).
 Otros equipos crean su propio proyecto `*-e2e` que depende de `autto-core`, y las mejoras del motor llegan a todos
 subiendo una versión.
+Ver la [Guía de adopción](adopcion.md) para consumir `autto-core` mediante JitPack o un repositorio interno.
+
+## ADR-005 · REST Assured para pruebas de API — **aceptada**
+
+**Contexto.** Las suites reales mezclan UI y API: las APIs preparan datos en segundos, verifican el estado del
+back-end y prueban servicios directamente. Los equipos de QA lo necesitan integrado, en el reporte y enmascarado igual
+que la parte de UI.
+
+**Opciones consideradas**
+
+| Opción | Veredicto |
+|---|---|
+| `RestClient` de Spring | ✅ Ligero y ya en el ecosistema, pero no es un DSL de pruebas (sin `then().statusCode()` ni aserciones JSON path). |
+| `java.net.http.HttpClient` | ❌ Demasiado bajo nivel para código de pruebas. |
+| **REST Assured** | ✅ Estándar de facto en automatización de APIs, conocido por la mayoría de QA, DSL fluido given/when/then. |
+
+**Decisión.** REST Assured detrás del bean `Api`: URL base, cabeceras por defecto, timeouts y un filtro que escribe
+cada intercambio en el reporte con las cabeceras sensibles y los secretos enmascarados. **Coste:** Groovy y Apache
+HttpClient 4 en el classpath de pruebas (~10 MB), aceptable para un framework de pruebas.
+
+## ADR-006 · axe-core para accesibilidad — **aceptada**
+
+**Contexto.** La accesibilidad (WCAG 2.1 AA, European Accessibility Act, ADA) es un requisito legal para muchas
+empresas y es más barato detectarla en la misma suite que ya abre cada página.
+
+**Decisión.** La integración de Selenium de `axe-core` de Deque (`Accessibility.scan()`), el motor open source más
+usado, con los tags WCAG y el impacto que falla configurables en `autto.accessibility.*`. Las auditorías solo se
+ejecutan donde un step las pide, así que nunca ralentizan otros escenarios.
+
+## ADR-007 · Resiliencia por defecto — **aceptada**
+
+- **Reintentos al arrancar el navegador** (`autto.driver.start-retries`, back-off exponencial): un Grid ocupado o la
+  cola de la nube fallan la creación de la sesión, no la prueba. Los errores de configuración nunca se reintentan.
+- **Aserciones suaves** verificadas automáticamente al final de cada escenario: todos los fallos en una ejecución.
+- **Sin reintentos de escenarios fallidos** dentro de la ejecución: ocultan bugs reales. Re-ejecuta los fallos de
+  forma explícita con `rerun.txt` e investiga la inestabilidad.

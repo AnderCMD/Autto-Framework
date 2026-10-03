@@ -29,6 +29,8 @@ autto-e2e/src/test/java/io/github/andercmd/autto/e2e/
     ├── login/       LoginPage, LoginSteps
     ├── inventory/   InventoryPage, InventorySteps
     ├── checkout/    CartPage, CheckoutPage, CheckoutSteps, Customer
+    ├── api/         StorefrontApiSteps (API + soft assertions)
+    ├── accessibility/ AccessibilitySteps (axe-core)
     └── showcase/    ReportShowcaseSteps (Report API demo)
 
 autto-e2e/src/test/resources/
@@ -43,7 +45,7 @@ Reuse between features is explicit (constructor injection of another feature's p
 ## Layers and dependency rule
 
 ```
-features (Gherkin, steps, pages)  ──►  autto-core  ──►  Spring Boot · Cucumber · Selenium · WebDriverManager · Appium · Extent
+features (Gherkin, steps, pages)  ──►  autto-core  ──►  Spring Boot · Cucumber · Selenium · WebDriverManager · Appium · REST Assured · axe-core · Extent
 ```
 
 ### `autto-core` packages
@@ -52,13 +54,15 @@ features (Gherkin, steps, pages)  ──►  autto-core  ──►  Spring Boot 
 |---|---|---|
 | `config` | Spring Boot based configuration, profiles, `.env` | `AuttoProperties`, `AuttoSettings`, `DotEnv`, `DotEnvEnvironmentPostProcessor` |
 | `spring` | Auto-configuration (beans for test projects) | `AuttoAutoConfiguration` |
-| `driver` | Driver resolution and creation per thread | `DriverResolver` (WDM → Selenium Manager), `DriverFactory`, `DriverManager`, `DriverSession`, `BrowserOptionsFactory`, `CapabilitiesParser` |
+| `driver` | Driver resolution and creation per thread, start retries | `DriverResolver` (WDM → Selenium Manager), `DriverFactory`, `DriverManager`, `DriverSession`, `BrowserOptionsFactory`, `CapabilitiesParser` |
 | `ui` | Page object base and stereotype | `BasePage`, `@PageObject` |
-| `cucumber` | Framework glue | `BrowserHooks` |
+| `cucumber` | Framework glue | `BrowserHooks`, `SoftAssertionHooks` |
+| `api` | REST client for API tests and data set-up | `Api`, `ApiReportFilter` |
+| `a11y` | Accessibility audits (axe-core) | `Accessibility`, `AccessibilityResult` |
 | `media` | Evidence capture | `Screenshots`, `VideoRecorder` |
 | `report` | Extent report + public logging API | `ExtentCucumberPlugin`, `ExtentReportManager`, `Report`, `ReportPaths` |
 | `security` | Secret masking | `Secrets`, `Credentials`, `MaskingMessageConverter` |
-| `data` | JSON test data, random data | `TestData` |
+| `data` | JSON/YAML test data, random data | `TestData` |
 | `context` | Per-scenario shared state | `ScenarioContext` |
 
 ## Dependency injection
@@ -67,6 +71,8 @@ features (Gherkin, steps, pages)  ──►  autto-core  ──►  Spring Boot 
 |---|---|---|
 | `AuttoSettings`, `AuttoProperties` | singleton | `AuttoAutoConfiguration` |
 | `ScenarioContext` | scenario | `AuttoAutoConfiguration` |
+| `Api` | singleton | `AuttoAutoConfiguration` |
+| `SoftAssertions` (AssertJ) | scenario | `AuttoAutoConfiguration`, verified by `SoftAssertionHooks` |
 | `@PageObject` classes | scenario | component scan of `E2eTestApplication` |
 | Step definitions, hooks | scenario | `cucumber-spring` (glue) |
 | `TestUsers`, your API clients, builders… | singleton (or scenario) | component scan |
@@ -87,6 +93,7 @@ recreated for every scenario, so parallel execution is safe.
          │     VideoRecorder.start()
          ├─ steps (scenario-scoped beans) → @PageObject pages → DriverManager.driver()
          │     @AfterStep screenshot
+         ├─ @After SoftAssertionHooks → every soft assertion verified
          └─ @After evidence (URL, page source, console, video) → quit
  └─ TestRunFinished → Extent flush → autto-e2e/target/autto-reports/index.html
 ```

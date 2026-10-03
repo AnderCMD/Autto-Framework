@@ -65,8 +65,13 @@ public final class Report {
     }
 
     public static void code(String title, String content) {
+        code(title, content, true);
+    }
+
+    /** Adds a pre-formatted block; {@code expanded=false} renders it collapsed (request/response logs...). */
+    public static void code(String title, String content, boolean expanded) {
         LOG.debug("{}:\n{}", title, Secrets.mask(content));
-        target().ifPresent(t -> t.info(Html.collapsible(title, content, true)));
+        target().ifPresent(t -> t.info(Html.collapsible(title, content, expanded)));
     }
 
     public static void json(String title, String json) {

@@ -67,8 +67,16 @@ Reglas (varias las verifica Checkstyle):
 - Los métodos públicos expresan intención o devuelven datos; **sin aserciones**.
 - Nunca guardes `WebElement` / `WebDriver`; llama a `driver()`.
 - Nada de `Thread.sleep`, `implicitlyWait` ni `System.out`.
-- Usa los helpers de `BasePage`: `open`, `click`, `type`, `text`, `texts`, `visible`, `clickable`, `allVisible`,
-  `selectByText`, `hover`, `isDisplayed`, `waitUntil`, `js`; la configuración con `config()`.
+- Usa los helpers de `BasePage` en lugar de Selenium directo:
+
+| Necesidad | Helpers |
+|---|---|
+| Navegación | `open`, `currentUrl`, `title`, `waitForPageLoad`, `waitForUrlContains` |
+| Esperas | `visible`, `clickable`, `allVisible`, `waitForInvisibility`, `waitForText`, `waitUntil` |
+| Interacciones | `click`, `jsClick` (último recurso), `doubleClick`, `type`, `typeAndSubmit`, `pressKeys`, `selectByText`, `selectByValue`, `hover`, `scrollIntoView`, `upload` |
+| Lectura | `text`, `texts`, `attribute`, `isDisplayed`, `count` |
+| Frames, ventanas, alertas | `switchToFrame`, `switchToDefaultContent`, `switchToNewWindow`, `switchToWindow`, `acceptAlert`, `dismissAlert` |
+| Cualquier otra cosa | `js`, `driver()`, la configuración con `config()` |
 
 ## 4. Step definitions
 
@@ -96,6 +104,23 @@ public class SearchSteps {
 ```
 
 Los steps pueden inyectar páginas, `ScenarioContext`, `TestUsers`, `AuttoProperties` o cualquier bean propio.
+
+### Aserciones suaves (soft assertions)
+
+Comprueba varias cosas y obtén **todos** los fallos a la vez. El bean `SoftAssertions` (uno por escenario) se verifica
+automáticamente al terminar el escenario (antes de recoger las evidencias del fallo):
+
+```java
+public CartSteps(CartPage cart, SoftAssertions softly) { ... }
+
+@Then("the cart summary is correct")
+public void theCartSummaryIsCorrect() {
+    softly.assertThat(cart.count()).as("items").isEqualTo(2);
+    softly.assertThat(cart.total()).as("total").isEqualTo("$39.98");
+}
+```
+
+Usa `assertThat` normal cuando los siguientes pasos no tienen sentido tras un fallo (p. ej. el login).
 
 ## 5. Usuarios de prueba y secretos
 
@@ -127,25 +152,43 @@ String id = context.get("order.id", String.class);
 
 ```java
 List<Product> all = TestData.load("search/products.json", new TypeReference<List<Product>>() {});
+Customer vip = TestData.entry("checkout/customers.yml", "vip", Customer.class);   // también YAML
 String email = TestData.faker().internet().emailAddress();
 ```
 
-Los valores JSON admiten placeholders `${NOMBRE}` / `${NOMBRE:defecto}` resueltos desde `.env`, el entorno y la
+Los valores JSON y YAML admiten placeholders `${NOMBRE}` / `${NOMBRE:defecto}` resueltos desde `.env`, el entorno y la
 configuración.
 
-## 8. Tus propios beans (clientes de API, utilidades de BD…)
+## 7b. Comprobaciones de accesibilidad
+
+```java
+Accessibility.scan().assertNoViolations();                       // página completa, falla según autto.accessibility.fail-on
+Accessibility.scan("#checkout-form").assertNoViolations(Impact.CRITICAL);   // una región, umbral propio
+```
+
+Cada auditoría añade al reporte una tabla con las reglas incumplidas, su impacto y cómo corregirlas. El step de la
+demo `Then the page has no critical accessibility violations` se puede reutilizar desde cualquier funcionalidad.
+
+## 8. Llamadas a APIs y tus propios beans
+
+El bean `Api` (REST Assured con los valores de `autto.api.*`, reporte y enmascarado) cubre las pruebas de API y la
+preparación de datos para escenarios de UI — ver [Pruebas de API](pruebas-api.md). Envuelve los endpoints de tu
+producto en tus propios beans:
 
 ```java
 @Component
 public class OrdersApi {
-    private final RestClient client;
-    public OrdersApi(AuttoProperties props) {
-        this.client = RestClient.create(props.baseUrl() + "/api");   // añade spring-web a autto-e2e
+    private final Api api;
+    public OrdersApi(Api api) { this.api = api; }
+
+    public String createOrder(Order order) {
+        return api.request().body(order).post("/orders").then().statusCode(201).extract().path("id");
     }
 }
 ```
 
-Úsalos en los steps para crear datos rápidamente o verificar el estado del back-end.
+Las utilidades de base de datos, clientes de mensajería o builders de datos también son beans de Spring normales
+(añade `spring-boot-starter-jdbc` o el cliente que necesites a `autto-e2e`).
 
 ## 9. Ejecuta tu funcionalidad
 

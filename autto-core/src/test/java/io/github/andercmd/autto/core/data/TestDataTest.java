@@ -18,6 +18,12 @@ class TestDataTest {
     }
 
     @Test
+    void yamlFilesAreSupported() {
+        User user = TestData.entry("sample/users.yml", "standard", User.class);
+        assertThat(user).isEqualTo(new User("standard_user", "fallback-pass"));
+    }
+
+    @Test
     void missingDataIsReportedClearly() {
         assertThatThrownBy(() -> TestData.entry("sample/users.json", "ghost", User.class))
                 .hasMessageContaining("ghost");

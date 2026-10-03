@@ -1,0 +1,3 @@
+standard:
+  username: standard_user
+  password: ${SAMPLE_PASSWORD:fallback-pass}

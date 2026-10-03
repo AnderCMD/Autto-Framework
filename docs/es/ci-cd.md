@@ -12,7 +12,7 @@ Puntos clave para cualquier CI:
 
 | Workflow | Disparador | Jobs |
 |---|---|---|
-| `ci.yml` | push a `main`, pull requests, manual | **Secret scanning** (gitleaks, todo el historial) · **Build** (enforcer, checkstyle, tests unitarios, escenarios sin navegador) · **Matriz E2E** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
+| `ci.yml` | push a `main`, pull requests, manual | **Secret scanning** (gitleaks, todo el historial) · **Dependency review** (pull requests: fallan las dependencias nuevas con vulnerabilidades altas/críticas) · **Build** (enforcer, checkstyle, tests unitarios, escenarios sin navegador) · **Matriz E2E** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
 | `nightly.yml` | cada noche, manual | `@regression` contra el Selenium Grid de Docker (en paralelo) y con navegadores Docker de WebDriverManager |
 
 Secreto requerido: `SAUCE_PASSWORD` (*Settings → Secrets and variables → Actions*). El workflow demo usa como

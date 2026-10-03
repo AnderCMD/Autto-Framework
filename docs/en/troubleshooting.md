@@ -61,6 +61,18 @@ code; `-Dcheckstyle.skip` exists only for emergencies.
 Open-source Chromium lacks the H.264 codec: use Chrome/Edge/Firefox/Safari or *Download video*. Videos are kept only
 for failed scenarios by default.
 
+### `Could not start a new session` / `SessionNotCreatedException` on Grid or cloud
+
+The hub was busy or the vendor queue was full. Autto already retries `autto.driver.start-retries` times (default 1)
+with exponential back-off; raise it for shared Grids (`-Dautto.driver.start-retries=3`) and check the hub capacity
+(`max-sessions`) and your vendor's parallel limit.
+
+### API requests time out or fail with SSL errors
+
+Increase `autto.api.read-timeout` / `connect-timeout`. For test environments with self-signed certificates set
+`autto.api.relaxed-https=true` (never against production). Behind a proxy pass the standard JVM settings:
+`-Dhttps.proxyHost=proxy.company.com -Dhttps.proxyPort=8080`.
+
 ### Flaky tests
 
 No `Thread.sleep` (blocked by Checkstyle), keep `autto.timeouts.implicit=0s`, make scenarios independent and

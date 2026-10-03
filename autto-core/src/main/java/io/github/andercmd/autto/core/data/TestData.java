@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.github.andercmd.autto.core.config.AuttoSettings;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +20,8 @@ import java.util.regex.Pattern;
 import net.datafaker.Faker;
 
 /**
- * Loads JSON test data from {@code src/test/resources/testdata} and creates random data.
+ * Loads JSON or YAML ({@code .yml}/{@code .yaml}) test data from {@code src/test/resources/testdata} and creates
+ * random data.
  *
  * <p>String values may contain {@code ${NAME}} or {@code ${NAME:default}} placeholders, resolved against the
  * framework configuration: {@code .env}, environment variables, system properties and {@code application.yml}.
@@ -32,6 +34,10 @@ public final class TestData {
     private static final String ROOT = "testdata/";
     private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}:]+)(?::([^}]*))?}");
     private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .findAndAddModules()
+            .build();
+    private static final ObjectMapper YAML = YAMLMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .findAndAddModules()
             .build();
@@ -53,7 +59,7 @@ public final class TestData {
         return MAPPER.convertValue(tree(path), type);
     }
 
-    /** Reads one entry of a JSON object file: {@code TestData.entry("login/users.json", "standard", User.class)}. */
+    /** Reads one entry of an object file: {@code TestData.entry("login/users.json", "standard", User.class)}. */
     public static <T> T entry(String path, String key, Class<T> type) {
         JsonNode node = tree(path).get(key);
         if (node == null) {
@@ -73,7 +79,8 @@ public final class TestData {
             if (in == null) {
                 throw new IllegalArgumentException("Test data file not found on the classpath: " + resource);
             }
-            return resolve(MAPPER.readTree(in));
+            ObjectMapper reader = path.endsWith(".yml") || path.endsWith(".yaml") ? YAML : MAPPER;
+            return resolve(reader.readTree(in));
         } catch (IOException e) {
             throw new UncheckedIOException("Unable to read test data " + resource, e);
         }

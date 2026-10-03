@@ -12,7 +12,7 @@ Key points for any CI:
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `ci.yml` | push to `main`, pull requests, manual | **Secret scanning** (gitleaks, full history) · **Build** (enforcer, checkstyle, unit tests, browser-less scenarios) · **E2E matrix** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
+| `ci.yml` | push to `main`, pull requests, manual | **Secret scanning** (gitleaks, full history) · **Dependency review** (pull requests: new dependencies with high/critical vulnerabilities fail) · **Build** (enforcer, checkstyle, unit tests, browser-less scenarios) · **E2E matrix** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
 | `nightly.yml` | nightly, manual | `@regression` against the Docker Selenium Grid (parallel) and with WebDriverManager Docker browsers |
 
 Required secret: `SAUCE_PASSWORD` (*Settings → Secrets and variables → Actions*). The demo workflow falls back to

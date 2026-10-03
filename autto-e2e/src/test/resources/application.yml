@@ -47,6 +47,9 @@ autto:
     fallback: true
     # browser not installed? start it in Docker automatically (requires Docker)
     docker-fallback: false
+    # extra attempts when the browser session cannot be created (busy Grid / cloud), with exponential back-off
+    start-retries: 1
+    start-retry-delay: 2s
 
   execution:
     # local | docker | remote | appium
@@ -87,6 +90,25 @@ autto:
     show-host: true
     info:
       Project: Autto Framework demo (saucedemo.com)
+
+  api:
+    # base URL of the API under test (requests may also use absolute URLs)
+    base-url: https://www.saucedemo.com
+    connect-timeout: 10s
+    read-timeout: 30s
+    # trust self-signed certificates (test environments only)
+    relaxed-https: false
+    # attach every request and response (masked) to the report
+    report: true
+    # default headers of every request; secret values belong in .env / CI secrets:  Authorization: Bearer ${API_TOKEN}
+    headers: {}
+
+  accessibility:
+    # axe-core rule tags: wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa, best-practice...
+    tags: [wcag2a, wcag2aa, wcag21a, wcag21aa]
+    disabled-rules: []
+    # minor | moderate | serious | critical — impact rejected by "the page has no accessibility violations"
+    fail-on: serious
 
 # ---------------------------------------------------------------------------------------------------------------------
 #  Test users. Passwords are NEVER written here: they reference secrets resolved from .env (local) or CI secrets.

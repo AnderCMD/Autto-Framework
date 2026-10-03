@@ -11,6 +11,8 @@
 ./mvnw -pl autto-e2e test                                                   # default filter excludes @wip, @ignore, @demo-failure
 ./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@smoke"
 ./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@regression and not @slow"
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@api"                   # API only, no browser (fast)
+./mvnw -pl autto-e2e test -Dcucumber.filter.tags="@accessibility"         # axe-core audits
 ./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login
 ./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login/login.feature:12
 ./mvnw -pl autto-e2e test -Dcucumber.filter.name="Successful login"

@@ -3,12 +3,16 @@ package io.github.andercmd.autto.core.ui;
 import io.github.andercmd.autto.core.config.AuttoProperties;
 import io.github.andercmd.autto.core.config.AuttoSettings;
 import io.github.andercmd.autto.core.driver.DriverManager;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
+import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
@@ -75,6 +79,15 @@ public abstract class BasePage {
         return driver().getTitle();
     }
 
+    /** Waits until the document is fully loaded ({@code document.readyState == 'complete'}). */
+    protected void waitForPageLoad() {
+        waitUntil(d -> "complete".equals(((JavascriptExecutor) d).executeScript("return document.readyState")));
+    }
+
+    protected void waitForUrlContains(String fragment) {
+        waitUntil(ExpectedConditions.urlContains(fragment));
+    }
+
     // ------------------------------------------------------------------ waits
 
     protected WebDriverWait waiter() {
@@ -106,6 +119,11 @@ public abstract class BasePage {
 
     protected boolean waitForInvisibility(By locator) {
         return waitUntil(ExpectedConditions.invisibilityOfElementLocated(locator));
+    }
+
+    /** Waits until the element contains {@code text} (e.g. a status that changes asynchronously). */
+    protected void waitForText(By locator, String text) {
+        waitUntil(ExpectedConditions.textToBePresentInElementLocated(locator, text));
     }
 
     // ------------------------------------------------------------------ interactions
@@ -151,6 +169,31 @@ public abstract class BasePage {
         new Select(visible(locator)).selectByVisibleText(text);
     }
 
+    /** Clicks through JavaScript. Last resort for elements covered by overlays that a user could still click. */
+    protected void jsClick(By locator) {
+        log.debug("JavaScript click {}", locator);
+        js("arguments[0].click();", visible(locator));
+    }
+
+    protected void doubleClick(By locator) {
+        new Actions(driver()).doubleClick(clickable(locator)).perform();
+    }
+
+    protected void pressKeys(By locator, CharSequence... keys) {
+        visible(locator).sendKeys(keys);
+    }
+
+    /** Types the text and presses Enter (search boxes, single-field forms). */
+    protected void typeAndSubmit(By locator, String text) {
+        type(locator, text);
+        pressKeys(locator, Keys.ENTER);
+    }
+
+    /** Selects a local file in an {@code <input type=file>} (works on local, Grid and cloud browsers). */
+    protected void upload(By fileInput, Path file) {
+        driver().findElement(fileInput).sendKeys(file.toAbsolutePath().toString());
+    }
+
     protected void hover(By locator) {
         new Actions(driver()).moveToElement(visible(locator)).perform();
     }
@@ -161,6 +204,51 @@ public abstract class BasePage {
 
     protected Object js(String script, Object... args) {
         return ((JavascriptExecutor) driver()).executeScript(script, args);
+    }
+
+    // ------------------------------------------------------------------ frames, windows and alerts
+
+    protected void switchToFrame(By frame) {
+        waitUntil(ExpectedConditions.frameToBeAvailableAndSwitchToIt(frame));
+    }
+
+    protected void switchToDefaultContent() {
+        driver().switchTo().defaultContent();
+    }
+
+    /**
+     * Runs {@code action} (a click that opens a tab or window), waits for the new window and switches to it.
+     *
+     * @return handle of the original window, to come back with {@link #switchToWindow(String)}
+     */
+    protected String switchToNewWindow(Runnable action) {
+        String original = driver().getWindowHandle();
+        Set<String> before = driver().getWindowHandles();
+        action.run();
+        String opened = waitUntil(d -> d.getWindowHandles().stream().filter(h -> !before.contains(h)).findFirst()
+                .orElse(null));
+        driver().switchTo().window(opened);
+        return original;
+    }
+
+    protected void switchToWindow(String handle) {
+        driver().switchTo().window(handle);
+    }
+
+    /** Accepts the JavaScript alert/confirm and returns its text. */
+    protected String acceptAlert() {
+        Alert alert = waitUntil(ExpectedConditions.alertIsPresent());
+        String text = alert.getText();
+        alert.accept();
+        return text;
+    }
+
+    /** Dismisses the JavaScript confirm and returns its text. */
+    protected String dismissAlert() {
+        Alert alert = waitUntil(ExpectedConditions.alertIsPresent());
+        String text = alert.getText();
+        alert.dismiss();
+        return text;
     }
 
     // ------------------------------------------------------------------ state checks (never throw)

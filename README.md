@@ -3,7 +3,7 @@
 # Autto Framework
 
 **Enterprise, open source QA automation framework**
-**Spring Boot · Cucumber · Selenium · WebDriverManager · Extent Reports · Java 27**
+**Spring Boot · Cucumber · Selenium · REST Assured · axe-core · Extent Reports · Java 27**
 
 [![CI](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml/badge.svg)](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -18,7 +18,8 @@ English · [Español](README.es.md)
 
 ---
 
-Autto is a production-grade starting point for UI test automation. The engine (`autto-core`) is a reusable Spring
+Autto is a production-grade starting point for UI, API and accessibility test automation, for a single tester
+or a whole company. The engine (`autto-core`) is a reusable Spring
 Boot auto-configuration; the test suite (`autto-e2e`) only contains business features. Browsers, drivers, secrets,
 parallelism, evidence and reports are already solved.
 
@@ -31,6 +32,9 @@ parallelism, evidence and reports are already solved.
 | **Any browser, no matter what** | Chrome, Chromium, Firefox, Edge, Safari. WebDriverManager → Selenium Manager fallback → Docker fallback when the browser is not installed. |
 | **Any platform** | Windows, macOS, Linux, Docker browsers, Selenium Grid, BrowserStack / Sauce Labs / LambdaTest, Android and iOS (Appium). |
 | **Secure secrets** | `.env` (git-ignored) locally, CI secrets in pipelines, values masked in logs and reports, gitleaks in CI and pre-commit. |
+| **API testing** | REST Assured `Api` bean with base URL, default headers and timeouts; every request and response in the report with secrets masked. |
+| **Accessibility** | axe-core audits against WCAG 2.1 A/AA with one call (`Accessibility.scan()`), violations listed in the report. |
+| **Resilient by default** | Browser start retries with back-off, explicit waits only, soft assertions verified at the end of every scenario. |
 | **Rich reports** | Extent Spark dashboard, timeline, tags, devices, authors, failures-only report; Cucumber HTML/JSON/JUnit outputs. |
 | **Evidence** | Screenshots, **MP4 video of every scenario** (no ffmpeg), page source, browser console (BiDi), attachments. |
 | **Quality gates** | Maven Enforcer, Checkstyle (no `Thread.sleep`, no `System.out`…), unit tests, JaCoCo profile, Dependabot. |
@@ -47,6 +51,8 @@ parallelism, evidence and reports are already solved.
 | WebDriverManager | 6.4.0 |
 | Appium Java client | 10.1.1 |
 | JUnit Platform | 6.1.3 |
+| REST Assured | 6.0.1 |
+| axe-core (Selenium) | 4.13.0 |
 | Extent Reports | 5.1.2 |
 | Checkstyle | 14.3.0 |
 | Maven (wrapper) | 3.10.0 |
@@ -84,12 +90,14 @@ Autto-Framework
 │       ├── config/     AuttoProperties (typed), AuttoSettings, DotEnv, profiles
 │       ├── spring/     AuttoAutoConfiguration
 │       ├── driver/     DriverResolver (WebDriverManager → Selenium Manager → Docker), DriverFactory, DriverManager
+│       ├── api/        Api (REST Assured), ApiReportFilter
+│       ├── a11y/       Accessibility (axe-core), AccessibilityResult
 │       ├── ui/         BasePage, @PageObject
-│       ├── cucumber/   BrowserHooks (browser life cycle + evidence)
+│       ├── cucumber/   BrowserHooks (browser life cycle + evidence), SoftAssertionHooks
 │       ├── media/      screenshots, video recorder
 │       ├── report/     Extent Cucumber plugin, Report API
 │       ├── security/   Secrets masking, Credentials
-│       ├── data/       JSON test data, Datafaker
+│       ├── data/       JSON/YAML test data, Datafaker
 │       └── context/    ScenarioContext
 └── autto-e2e/                      TEST SUITE of the application under test
     └── src/test/
@@ -100,6 +108,8 @@ Autto-Framework
         │       ├── login/      LoginPage, LoginSteps
         │       ├── inventory/  InventoryPage, InventorySteps
         │       ├── checkout/   CartPage, CheckoutPage, CheckoutSteps, Customer
+        │       ├── api/        StorefrontApiSteps (API + soft assertions)
+        │       ├── accessibility/ AccessibilitySteps (axe-core)
         │       └── showcase/   ReportShowcaseSteps (Report API demo)
         └── resources/
             ├── application.yml + application-{qa,staging,prod,ci,docker,grid,browserstack}.yml
@@ -113,9 +123,11 @@ Autto-Framework
 | Guide | Description |
 |---|---|
 | [Getting started](docs/en/getting-started.md) | Requirements, first run, IDE setup |
+| [Adoption guide](docs/en/adoption.md) | Starter, team and enterprise setups; using `autto-core` from your own project |
 | [Architecture](docs/en/architecture.md) | Modules, screaming architecture, dependency injection, execution flow |
-| [Architecture decisions](docs/en/decisions.md) | Why Spring Boot, WebDriverManager, `.env` and multi-module |
-| [Writing tests](docs/en/writing-tests.md) | New feature step by step, page objects, users, data, own beans |
+| [Architecture decisions](docs/en/decisions.md) | Why Spring Boot, WebDriverManager, `.env`, multi-module, REST Assured, axe-core |
+| [Writing tests](docs/en/writing-tests.md) | New feature step by step, page objects, soft assertions, data, accessibility |
+| [API testing](docs/en/api-testing.md) | `Api` client, authentication, report, data set-up for UI scenarios |
 | [Configuration](docs/en/configuration.md) | Profiles, precedence and every `autto.*` key |
 | [Secrets & environment variables](docs/en/secrets.md) | `.env`, CI secrets, masking, leak prevention |
 | [Running tests](docs/en/running-tests.md) | Tags, browsers, parallelism, Docker, Grid, cloud, Appium |

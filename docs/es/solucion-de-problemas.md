@@ -60,6 +60,18 @@ implícitas... Corrige el código; `-Dcheckstyle.skip` existe solo para emergenc
 Chromium open source no incluye el códec H.264: usa Chrome/Edge/Firefox/Safari o *Download video*. Por defecto los
 videos solo se conservan para escenarios fallidos.
 
+### `Could not start a new session` / `SessionNotCreatedException` en Grid o en la nube
+
+El hub estaba ocupado o la cola del proveedor llena. Autto ya reintenta `autto.driver.start-retries` veces (1 por
+defecto) con back-off exponencial; súbelo en Grids compartidos (`-Dautto.driver.start-retries=3`) y revisa la
+capacidad del hub (`max-sessions`) y el límite de paralelismo de tu proveedor.
+
+### Las peticiones de API agotan el tiempo o fallan con errores SSL
+
+Aumenta `autto.api.read-timeout` / `connect-timeout`. En entornos de prueba con certificados autofirmados usa
+`autto.api.relaxed-https=true` (nunca contra producción). Detrás de un proxy pasa los ajustes estándar de la JVM:
+`-Dhttps.proxyHost=proxy.company.com -Dhttps.proxyPort=8080`.
+
 ### Pruebas inestables (flaky)
 
 Nada de `Thread.sleep` (lo bloquea Checkstyle), mantén `autto.timeouts.implicit=0s`, haz los escenarios

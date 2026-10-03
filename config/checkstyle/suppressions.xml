@@ -5,6 +5,8 @@
 <suppressions>
     <!-- The video recorder unit test needs real time to pass between frames -->
     <suppress id="noThreadSleep" files="[\\/]autto-core[\\/]src[\\/]test[\\/].*VideoRecorderTest\.java"/>
+    <!-- Back-off between attempts to create a browser session (not a wait for the application) -->
+    <suppress id="noThreadSleep" files="[\\/]driver[\\/]StartRetry\.java"/>
     <!-- The driver factory is the single place allowed to configure the implicit wait -->
     <suppress id="noImplicitWait" files="[\\/]driver[\\/]DriverFactory\.java"/>
 </suppressions>

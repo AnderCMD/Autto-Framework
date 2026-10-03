@@ -76,6 +76,8 @@ Durations accept `500ms`, `15s`, `5m`. Enums accept `on-failure`, `ON_FAILURE`, 
 | `fallback` | `true` | Use Selenium Manager when WebDriverManager fails. |
 | `docker-fallback` | `false` | Start the browser in Docker when it is not installed locally (requires Docker). |
 | `cache-path` | `~/.cache/selenium` | WebDriverManager driver cache. |
+| `start-retries` | `1` | Extra attempts when the browser session cannot be created (busy Grid, cloud queue, slow Docker). Configuration errors are never retried. `0`–`10`. |
+| `start-retry-delay` | `2s` | Pause before the first retry; doubled after every failed attempt. |
 
 WebDriverManager also reads its own `wdm.*` system properties / `WDM_*` variables (proxy, mirrors, timeouts), e.g.
 `-Dwdm.proxy=proxy.company.com:8080`.
@@ -152,6 +154,25 @@ autto:
 | `author` | — | Default author when a scenario has no `@author:<name>` tag. |
 | `show-host` | `true` | Show user and host in the dashboard. |
 | `info.<label>` | — | Extra dashboard rows. |
+
+### `autto.api` (REST client, see [API testing](api-testing.md))
+
+| Key | Default | Description |
+|---|---|---|
+| `base-url` | — | Base URL of the API under test; requests may also use absolute URLs. |
+| `connect-timeout` | `10s` | TCP connection timeout. |
+| `read-timeout` | `30s` | Socket read timeout. |
+| `relaxed-https` | `false` | Trust any certificate (test environments with self-signed certificates only). |
+| `report` | `true` | Attach every request and response to the report (sensitive headers and secrets masked). |
+| `headers.<name>` | — | Default headers, e.g. `Authorization: Bearer ${API_TOKEN}`. |
+
+### `autto.accessibility` (axe-core audits)
+
+| Key | Default | Description |
+|---|---|---|
+| `tags` | `[wcag2a, wcag2aa, wcag21a, wcag21aa]` | axe rule tags to evaluate (`wcag22aa`, `best-practice`…). |
+| `disabled-rules` | `[]` | axe rule ids that are never evaluated (e.g. `color-contrast` while a redesign is pending). |
+| `fail-on` | `serious` | Minimum impact rejected by `AccessibilityResult.assertNoViolations()`: `minor`, `moderate`, `serious`, `critical`. |
 
 ### Cucumber (`junit-platform.properties`)
 

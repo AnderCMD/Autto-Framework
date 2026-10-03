@@ -1,0 +1,7 @@
+# Builds autto-core for JitPack (https://jitpack.io/#AnderCMD/Autto-Framework), so any company can consume the
+# engine without a private repository:  com.github.AnderCMD.Autto-Framework:autto-core:<tag>
+# The library is compiled for Java 21, the minimum supported version, to work with any newer JDK.
+jdk:
+  - openjdk21
+install:
+  - ./mvnw -B -ntp install -pl autto-core -am -DskipTests -Djava.version=21 -Dcheckstyle.skip

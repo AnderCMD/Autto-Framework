@@ -77,6 +77,8 @@ Las duraciones aceptan `500ms`, `15s`, `5m`. Los enums aceptan `on-failure`, `ON
 | `fallback` | `true` | Usar Selenium Manager cuando WebDriverManager falla. |
 | `docker-fallback` | `false` | Arrancar el navegador en Docker si no está instalado (requiere Docker). |
 | `cache-path` | `~/.cache/selenium` | Caché de drivers de WebDriverManager. |
+| `start-retries` | `1` | Intentos extra cuando no se puede crear la sesión del navegador (Grid ocupado, cola de la nube, Docker lento). Los errores de configuración nunca se reintentan. `0`–`10`. |
+| `start-retry-delay` | `2s` | Pausa antes del primer reintento; se duplica tras cada intento fallido. |
 
 WebDriverManager también lee sus propias propiedades `wdm.*` / variables `WDM_*` (proxy, mirrors, timeouts), p. ej.
 `-Dwdm.proxy=proxy.empresa.com:8080`.
@@ -153,6 +155,25 @@ autto:
 | `author` | — | Autor por defecto si el escenario no tiene tag `@author:<nombre>`. |
 | `show-host` | `true` | Mostrar usuario y equipo en el dashboard. |
 | `info.<etiqueta>` | — | Filas extra del dashboard. |
+
+### `autto.api` (cliente REST, ver [Pruebas de API](pruebas-api.md))
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `base-url` | — | URL base de la API bajo prueba; las peticiones también pueden usar URLs absolutas. |
+| `connect-timeout` | `10s` | Timeout de conexión TCP. |
+| `read-timeout` | `30s` | Timeout de lectura. |
+| `relaxed-https` | `false` | Confiar en cualquier certificado (solo entornos de prueba con certificados autofirmados). |
+| `report` | `true` | Adjuntar cada petición y respuesta al reporte (cabeceras sensibles y secretos enmascarados). |
+| `headers.<nombre>` | — | Cabeceras por defecto, p. ej. `Authorization: Bearer ${API_TOKEN}`. |
+
+### `autto.accessibility` (auditorías con axe-core)
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `tags` | `[wcag2a, wcag2aa, wcag21a, wcag21aa]` | Tags de reglas axe a evaluar (`wcag22aa`, `best-practice`…). |
+| `disabled-rules` | `[]` | Ids de reglas axe que nunca se evalúan (p. ej. `color-contrast` mientras llega un rediseño). |
+| `fail-on` | `serious` | Impacto mínimo que rechaza `AccessibilityResult.assertNoViolations()`: `minor`, `moderate`, `serious`, `critical`. |
 
 ### Cucumber (`junit-platform.properties`)
 

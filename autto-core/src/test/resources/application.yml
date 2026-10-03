@@ -18,3 +18,12 @@ autto:
   report:
     info:
       Team: QA
+  api:
+    base-url: https://api.example.test
+    read-timeout: 5s
+    headers:
+      Accept: application/json
+      X-Api-Key: unit-test-api-key
+  accessibility:
+    tags: [wcag2a]
+    fail-on: critical

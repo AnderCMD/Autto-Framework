@@ -21,6 +21,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param timeouts WebDriver and wait timeouts
  * @param evidence screenshots, videos and page sources
  * @param report Extent report settings
+ * @param api REST API client ({@code Api})
+ * @param accessibility accessibility audits ({@code Accessibility})
  */
 @ConfigurationProperties(prefix = "autto")
 public record AuttoProperties(
@@ -32,24 +34,28 @@ public record AuttoProperties(
         Appium appium,
         Timeouts timeouts,
         Evidence evidence,
-        Reporting report) {
+        Reporting report,
+        Api api,
+        Accessibility accessibility) {
 
     public AuttoProperties {
         baseUrl = blankToNull(baseUrl);
         browser = browser != null ? browser : new Browser(null, null, null, null, null, null, null, null, null, null,
                 null, null, null);
-        driver = driver != null ? driver : new Driver(null, null, null, null);
+        driver = driver != null ? driver : new Driver(null, null, null, null, null, null);
         execution = execution != null ? execution : new Execution(null, null, null);
         docker = docker != null ? docker : new Docker(null, null, null);
         appium = appium != null ? appium : new Appium(null, null, null);
         timeouts = timeouts != null ? timeouts : new Timeouts(null, null, null, null, null);
         evidence = evidence != null ? evidence : new Evidence(null, null, null, null, null, null);
         report = report != null ? report : new Reporting(null, null, null, null, null, null, null, null, null, null);
+        api = api != null ? api : new Api(null, null, null, null, null);
+        accessibility = accessibility != null ? accessibility : new Accessibility(null, null, null);
     }
 
     /** Configuration with every default value. */
     public static AuttoProperties defaults() {
-        return new AuttoProperties(null, null, null, null, null, null, null, null, null);
+        return new AuttoProperties(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -105,14 +111,26 @@ public record AuttoProperties(
      * @param fallback use Selenium Manager when WebDriverManager cannot resolve the driver
      * @param dockerFallback start the browser in Docker when it is not installed locally (requires Docker)
      * @param cachePath driver cache folder of WebDriverManager (default ~/.cache/selenium)
+     * @param startRetries extra attempts when the browser session cannot be created (busy Grid, cloud queue...)
+     * @param startRetryDelay pause between attempts (doubled after every failed attempt)
      */
-    public record Driver(DriverResolution resolution, Boolean fallback, Boolean dockerFallback, String cachePath) {
+    public record Driver(DriverResolution resolution, Boolean fallback, Boolean dockerFallback, String cachePath,
+            Integer startRetries, Duration startRetryDelay) {
 
         public Driver {
             resolution = resolution != null ? resolution : DriverResolution.WEBDRIVERMANAGER;
             fallback = fallback == null || fallback;
             dockerFallback = dockerFallback != null && dockerFallback;
             cachePath = blankToNull(cachePath);
+            startRetries = startRetries != null ? startRetries : 1;
+            startRetryDelay = startRetryDelay != null ? startRetryDelay : Duration.ofSeconds(2);
+            if (startRetries < 0 || startRetries > 10) {
+                throw new IllegalArgumentException(
+                        "autto.driver.start-retries must be between 0 and 10, was " + startRetries);
+            }
+            if (startRetryDelay.isNegative()) {
+                throw new IllegalArgumentException("autto.driver.start-retry-delay must not be negative");
+            }
         }
     }
 
@@ -231,6 +249,47 @@ public record AuttoProperties(
             author = blankToNull(author);
             showHost = showHost == null || showHost;
         }
+    }
+
+    /**
+     * @param baseUrl base URL of the API under test (empty = absolute URLs in every request)
+     * @param connectTimeout TCP connection timeout
+     * @param readTimeout socket read timeout
+     * @param relaxedHttps trust any certificate and host name (test environments with self-signed certificates)
+     * @param report attach every request and response (masked) to the report
+     */
+    public record Api(String baseUrl, Duration connectTimeout, Duration readTimeout, Boolean relaxedHttps,
+            Boolean report) {
+
+        public Api {
+            baseUrl = blankToNull(baseUrl) != null ? baseUrl.trim() : null;
+            connectTimeout = connectTimeout != null ? connectTimeout : Duration.ofSeconds(10);
+            readTimeout = readTimeout != null ? readTimeout : Duration.ofSeconds(30);
+            relaxedHttps = relaxedHttps != null && relaxedHttps;
+            report = report == null || report;
+            requirePositive("autto.api.connect-timeout", connectTimeout);
+            requirePositive("autto.api.read-timeout", readTimeout);
+        }
+    }
+
+    /**
+     * @param tags axe-core rule tags to run (wcag2a, wcag2aa, wcag21aa, best-practice...)
+     * @param disabledRules axe rule ids that are never evaluated
+     * @param failOn minimum impact that {@code AccessibilityResult.assertNoViolations()} rejects
+     */
+    public record Accessibility(List<String> tags, List<String> disabledRules, Impact failOn) {
+
+        public Accessibility {
+            tags = tags != null && !tags.isEmpty() ? List.copyOf(tags) : List.of("wcag2a", "wcag2aa", "wcag21a",
+                    "wcag21aa");
+            disabledRules = disabledRules != null ? List.copyOf(disabledRules) : List.of();
+            failOn = failOn != null ? failOn : Impact.SERIOUS;
+        }
+    }
+
+    /** Impact levels of accessibility violations, from lowest to highest. */
+    public enum Impact {
+        MINOR, MODERATE, SERIOUS, CRITICAL
     }
 
     private static String blankToNull(String value) {
