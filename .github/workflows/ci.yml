@@ -36,7 +36,7 @@ jobs:
           release: ${{ env.JAVA_RELEASE }}
 
       - name: Cache Maven repository
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
@@ -80,7 +80,7 @@ jobs:
           release: ${{ env.JAVA_RELEASE }}
 
       - name: Cache Maven repository
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
