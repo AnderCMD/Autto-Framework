@@ -69,7 +69,7 @@ beans de API para los datos de prueba.
 </repositories>
 ```
 
-Coordenadas: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (p. ej. `v1.1.1`), compilado para Java 21+.
+Coordenadas: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (p. ej. `v1.2.0`), compilado para Java 21+.
 
 **Maven Central.** Subir un tag ejecuta el workflow *Release*, que publica `io.github.andercmd:autto-core` en Maven
 Central si existen los secretos `MAVEN_CENTRAL_*` / `GPG_*` (perfil `release`); cada release además se firma y se
@@ -90,7 +90,7 @@ motor:
 
 ```xml
 <properties>
-    <autto.version>v1.1.1</autto.version>   <!-- io.github.andercmd:1.1.1 en un repositorio interno -->
+    <autto.version>v1.2.0</autto.version>   <!-- io.github.andercmd:1.2.0 en un repositorio interno -->
 </properties>
 
 <dependencyManagement>

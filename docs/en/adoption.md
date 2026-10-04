@@ -67,7 +67,7 @@ Recommended additions: Selenium Grid or a cloud vendor (`grid` / `browserstack` 
 </repositories>
 ```
 
-Coordinates: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (e.g. `v1.1.1`), compiled for Java 21+.
+Coordinates: `com.github.AnderCMD.Autto-Framework:autto-core:<tag>` (e.g. `v1.2.0`), compiled for Java 21+.
 
 **Maven Central.** Pushing a tag runs the *Release* workflow, which publishes `io.github.andercmd:autto-core` to Maven
 Central when the `MAVEN_CENTRAL_*` / `GPG_*` secrets exist (profile `release`); every release is also signed and
@@ -87,7 +87,7 @@ Import the Autto BOM so Selenium, Cucumber, Spring Boot and JUnit get the versio
 
 ```xml
 <properties>
-    <autto.version>v1.1.1</autto.version>   <!-- io.github.andercmd:1.1.1 in an internal repository -->
+    <autto.version>v1.2.0</autto.version>   <!-- io.github.andercmd:1.2.0 in an internal repository -->
 </properties>
 
 <dependencyManagement>
