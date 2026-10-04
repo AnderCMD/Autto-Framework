@@ -73,7 +73,7 @@
         <axe-core.version>4.13.0</axe-core.version>
         <!-- Transitive dependencies pinned above the vulnerable versions their parents bring (OSV) -->
         <freemarker.version>2.3.35</freemarker.version>   <!-- GHSA-27j2-h3m2-8237, via extentreports -->
-        <rhino.version>1.7.15.1</rhino.version>           <!-- GHSA-3w8q-xq97-5j7x, via axe-core -->
+        <rhino.version>1.9.1</rhino.version>           <!-- GHSA-3w8q-xq97-5j7x, via axe-core -->
 
         <!-- Quality -->
         <checkstyle.version>14.3.0</checkstyle.version>
