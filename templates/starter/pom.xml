@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>__GROUP__</groupId>
+    <artifactId>__ARTIFACT__</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>__ARTIFACT__</name>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <autto.group>__AUTTO_GROUP__</autto.group>
+        <autto.version>__AUTTO_VERSION__</autto.version>
+        <autto.ignoreFailures>false</autto.ignoreFailures>
+    </properties>
+
+    __REPOSITORIES__
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Same Selenium, Cucumber, Spring Boot and JUnit versions the engine was tested with -->
+            <dependency>
+                <groupId>${autto.group}</groupId>
+                <artifactId>autto-parent</artifactId>
+                <version>${autto.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>${autto.group}</groupId>
+            <artifactId>autto-core</artifactId>
+            <version>${autto.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <includes>
+                        <include>**/*Suite.java</include>
+                    </includes>
+                    <excludeJUnit5Engines>
+                        <excludeJUnit5Engine>cucumber</excludeJUnit5Engine>
+                    </excludeJUnit5Engines>
+                    <testFailureIgnore>${autto.ignoreFailures}</testFailureIgnore>
+                    <systemPropertyVariables>
+                        <org.springframework.boot.logging.LoggingSystem>none</org.springframework.boot.logging.LoggingSystem>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

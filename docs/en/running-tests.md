@@ -16,7 +16,7 @@
 ./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login
 ./mvnw -pl autto-e2e test -Dcucumber.features=classpath:features/login/login.feature:12
 ./mvnw -pl autto-e2e test -Dcucumber.filter.name="Successful login"
-./mvnw -pl autto-e2e test -Dcucumber.features=@target/autto-reports/rerun.txt    # re-run last failures
+./scripts/run-with-rerun.sh -Dcucumber.filter.tags=@smoke                          # run, then re-run only the failures once
 ./mvnw -pl autto-core test                                                  # framework unit tests only
 ```
 

@@ -174,15 +174,41 @@ autto:
 | `disabled-rules` | `[]` | axe rule ids that are never evaluated (e.g. `color-contrast` while a redesign is pending). |
 | `fail-on` | `serious` | Minimum impact rejected by `AccessibilityResult.assertNoViolations()`: `minor`, `moderate`, `serious`, `critical`. |
 
+### `autto.scenario`, `autto.performance`, `autto.visual` ([Advanced testing](advanced-testing.md))
+
+| Key | Default | Description |
+|---|---|---|
+| `scenario.timeout` | `10m` | A scenario running longer is aborted (browser closed, thread interrupted); `0` disables. |
+| `performance.fcp` / `lcp` / `ttfb` / `load` | `1800ms` / `2500ms` / `800ms` / `5s` | Budgets of `WebPerformance`; `0` disables one. |
+| `performance.cls` | `0.1` | Cumulative layout shift budget; `0` disables. |
+| `visual.baseline-dir` | `src/test/resources/visual` | Approved baseline images. |
+| `visual.tolerance` | `0.001` | Share of different pixels (0-1) still accepted. |
+| `visual.pixel-threshold` | `10` | Per-channel difference (0-255) below which two pixels are equal. |
+| `visual.update` | `false` | Create / replace baselines instead of comparing (`-Dautto.visual.update=true`). |
+| `visual.diff-dir` | `target/autto-reports/visual` | Actual and diff images of failed comparisons. |
+
+### `autto.db`, `autto.mail`, `autto.notifications`
+
+| Key | Default | Description |
+|---|---|---|
+| `db.url` / `username` / `password` | — | JDBC connection of the `Database` helper (the password is masked). `driver-class` only for drivers that do not self-register. |
+| `mail.url` | `http://localhost:8025` | Mailpit-compatible API read by `Mailbox`. |
+| `mail.timeout` | `30s` | How long `Mailbox.waitFor` polls. |
+| `notifications.webhook-url` | — | Slack / Teams / generic incoming webhook (a secret); empty disables notifications. |
+| `notifications.type` | `slack` | `slack`, `teams` or `generic` (JSON metrics). |
+| `notifications.only-on-failure` | `false` | Send only when a scenario failed. |
+| `notifications.report-url` | — | Link added to the message (CI run, GitHub Pages). |
+
 ### Cucumber (`junit-platform.properties`)
 
 | Key | Default | Description |
 |---|---|---|
 | `cucumber.filter.tags` | `not @wip and not @ignore and not @demo-failure` | Tag expression. |
-| `cucumber.features` | — | Override selected features (`classpath:features/login`, `@target/autto-reports/rerun.txt`). |
+| `cucumber.features` | — | Override selected features (`classpath:features/login`, comma separated; a failed-scenario list: `-Dcucumber.features="$(paste -sd, autto-e2e/target/autto-reports/rerun.txt)"` or `./scripts/run-with-rerun.sh`). |
 | `cucumber.glue` | `io.github.andercmd.autto.e2e,io.github.andercmd.autto.core.cucumber` | Steps + framework hooks. |
 | `cucumber.execution.parallel.enabled` | `false` | Parallel scenarios. |
-| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Threads. |
+| `cucumber.execution.parallel.config.strategy` | `dynamic` | `dynamic` (cores × factor) or `fixed` (`fixed.parallelism=N`, best when a Grid or cloud limits the free sessions). |
+| `cucumber.execution.parallel.config.dynamic.factor` | `1` | Threads per core. |
 
 ### Other
 

@@ -1,0 +1,74 @@
+name: Release
+
+# Pushing a tag vX.Y.Z builds the project, creates the SBOM, signs and attests the artifacts, creates the GitHub
+# release and, when the Maven Central secrets are configured, publishes to Maven Central.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+env:
+  MAVEN_ARGS: -B -ntp
+  MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+  MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write       # keyless signing and provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Check that the tag matches the project version
+        run: |
+          version="$(./mvnw -q help:evaluate -Dexpression=project.version -DforceStdout)"
+          test "v$version" = "${{ github.ref_name }}" || { echo "Tag ${{ github.ref_name }} does not match version $version"; exit 1; }
+
+      - name: Build, test and create the SBOM
+        run: ./mvnw verify -Pcoverage,sbom -Djava.version=21 -Dcucumber.filter.tags=@showcase
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: |
+            autto-core/target/autto-core-*.jar
+            target/bom.json
+
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
+      - name: Sign the jar and the SBOM (keyless)
+        run: |
+          for file in autto-core/target/autto-core-*[0-9].jar target/bom.json; do
+            cosign sign-blob --yes --bundle "$file.sigstore.json" "$file"
+          done
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          generate_release_notes: true
+          files: |
+            autto-core/target/autto-core-*.jar
+            target/bom.json
+            autto-core/target/*.sigstore.json
+            target/*.sigstore.json
+
+      - name: Publish to Maven Central
+        if: env.MAVEN_CENTRAL_USERNAME != ''
+        run: ./mvnw deploy -Prelease -DskipTests -Djava.version=21

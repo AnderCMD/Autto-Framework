@@ -14,6 +14,7 @@ import java.net.URL;
 import java.util.Locale;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.SessionNotCreatedException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -71,13 +72,44 @@ public final class DriverFactory {
         AbstractDriverOptions<?> options = localOptions(browser, settings, resolution);
         String name = browser.name().toLowerCase(Locale.ROOT);
         LOG.info("Starting local {} (driver: {})", name, resolution.strategy().name().toLowerCase(Locale.ROOT));
-        WebDriver driver = switch (browser) {
+        WebDriver driver;
+        try {
+            driver = startLocal(browser, options);
+        } catch (SessionNotCreatedException e) {
+            if (!isVersionMismatch(e)) {
+                throw e;
+            }
+            // The browser auto-updated after the driver was chosen: resolve the driver again, once.
+            LOG.warn("Driver and browser versions differ ({}). Resolving the driver again.", firstLine(e));
+            DriverResolver.Resolution fresh = DriverResolver.refresh(browser, settings.properties());
+            driver = startLocal(browser, localOptions(browser, settings, fresh));
+        }
+        return DriverHandle.of(driver, "local " + name);
+    }
+
+    private static WebDriver startLocal(BrowserType browser, AbstractDriverOptions<?> options) {
+        return switch (browser) {
             case CHROME, CHROMIUM -> new ChromeDriver((ChromeOptions) options);
             case FIREFOX -> new FirefoxDriver((FirefoxOptions) options);
             case EDGE -> new EdgeDriver((EdgeOptions) options);
             case SAFARI -> new SafariDriver((SafariOptions) options);
         };
-        return DriverHandle.of(driver, "local " + name);
+    }
+
+    /** Whether a failed session start was caused by a driver that does not match the installed browser. */
+    static boolean isVersionMismatch(RuntimeException e) {
+        String message = String.valueOf(e.getMessage()).toLowerCase(Locale.ROOT);
+        return message.contains("only supports chrome version")
+                || message.contains("only supports microsoft edge version")
+                || message.contains("this version of chromedriver")
+                || message.contains("this version of msedgedriver")
+                || message.contains("unable to discover open pages");
+    }
+
+    private static String firstLine(RuntimeException e) {
+        String message = String.valueOf(e.getMessage());
+        int newLine = message.indexOf('\n');
+        return newLine > 0 ? message.substring(0, newLine) : message;
     }
 
     /**

@@ -5,6 +5,46 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-04
+
+### Added
+
+- **Stability**: stale elements are retried inside `BasePage` interactions (`retryStale`); `autto.scenario.timeout`
+  aborts hung scenarios; driver self-healing when the browser auto-updated after the driver was cached;
+  `scripts/run-with-rerun.sh` re-runs failed scenarios once and reports the recovered ones as flaky; parallelism
+  follows the machine by default (`dynamic`).
+- **Data and services**: `Unique` (collision-free test data), scenario-scoped `Database` (JDBC with automatic
+  clean-up), `Mailbox` (Mailpit) and `Totp` for e-mail and two-factor flows, `ApiContract` (JSON Schema), Mailpit
+  in `docker-compose.yml` (profile `mail`).
+- **Page quality**: `WebPerformance` budgets, `VisualRegression` with page stabilisation, `NetworkMock` (DevTools, BiDi fallback), environment tags `@viewport:WxH`, `@slow-network`, `@offline`.
+- **Allure**: `AllureResultsPlugin` writes Allure results (steps, tags, failures, attachments) without the official
+  Cucumber 7 adapter, which is incompatible with Cucumber 8.
+- **Observability**: `RunSummaryPlugin` (`metrics.json`, Prometheus file, Slack / Teams / generic webhook),
+  correlation id in logs and `X-Correlation-Id` of API calls, JSON logs (`autto/logback-json.xml`).
+- **Tooling**: `scripts/doctor.sh`, `scripts/new-project.sh` with `templates/starter`, `.devcontainer/`, Appium
+  profile and demo feature, web-quality demo feature.
+- **Quality and supply chain**: JaCoCo coverage gate, SpotBugs (`-Pquality`), CycloneDX SBOM (`-Psbom`), Maven
+  Central profile (`-Prelease`), Release workflow with attestation and Sigstore signatures, OSV nightly scan.
+- **CI**: JDK 21/25/27 build matrix, Linux + Chrome only on pull requests, rerun of failures, optional Pages
+  publication with history and Slack / Teams summary, every action pinned to a commit SHA.
+- Docs: *Advanced testing* guide (English and Spanish), new configuration keys and troubleshooting entries.
+
+### Changed
+
+- `autto.api.relaxed-https` logs a warning when enabled.
+- Transitive dependencies pinned above vulnerable versions: `freemarker` 2.3.35 (GHSA-27j2-h3m2-8237, critical, via
+  Extent Reports) and `rhino` 1.7.15.1 (GHSA-3w8q-xq97-5j7x, via axe-core).
+- `NetworkMock` is not supported with the `docker` execution target (it fails fast with a clear message); use the
+  local target or a Selenium Grid.
+- `AuttoProperties` has six new components (`scenario`, `performance`, `visual`, `db`, `mail`, `notifications`): code
+  that builds it by hand must pass them (`AuttoProperties.defaults()` is unaffected).
+- Surefire appends the JaCoCo agent (`@{argLine}`), so `-Pcoverage` now really collects coverage.
+
+### Fixed
+
+- `-Dcucumber.features=@file` does not work with the JUnit Platform suite: the rerun script passes the failed
+  scenarios as a comma separated list instead.
+
 ## [1.1.1] - 2026-10-03
 
 ### Fixed
@@ -71,7 +111,8 @@ First stable release.
   browser console logs.
 - GitHub Actions matrix (Windows/macOS/Linux × Chrome/Firefox/Edge + Safari), nightly Grid and Docker regressions.
 
-[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/AnderCMD/Autto-Framework/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/AnderCMD/Autto-Framework/compare/v1.0.0...v1.0.1

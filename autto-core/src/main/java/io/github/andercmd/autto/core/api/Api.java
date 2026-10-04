@@ -2,11 +2,14 @@ package io.github.andercmd.autto.core.api;
 
 import io.github.andercmd.autto.core.config.AuttoProperties;
 import io.github.andercmd.autto.core.config.AuttoSettings;
+import io.github.andercmd.autto.core.observability.Correlation;
 import io.restassured.RestAssured;
 import io.restassured.config.HttpClientConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.specification.RequestSpecification;
 import java.util.Map;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Pre-configured REST Assured entry point for API tests and for preparing data through APIs in UI scenarios.
@@ -33,6 +36,10 @@ public class Api {
 
     public Api(AuttoSettings settings) {
         this.config = settings.properties().api();
+        if (config.relaxedHttps()) {
+            LoggerFactory.getLogger(Api.class).warn("autto.api.relaxed-https is enabled: TLS certificates and host "
+                    + "names are NOT verified. Use it only against test environments.");
+        }
         this.headers = Map.copyOf(settings.apiHeaders());
         this.restConfig = RestAssuredConfig.config().httpClient(HttpClientConfig.httpClientConfig()
                 .setParam("http.connection.timeout", Math.toIntExact(config.connectTimeout().toMillis()))
@@ -52,6 +59,10 @@ public class Api {
         }
         if (config.relaxedHttps()) {
             request.relaxedHTTPSValidation();
+        }
+        String correlationId = MDC.get(Correlation.MDC_KEY);
+        if (correlationId != null) {
+            request.header(Correlation.HEADER, correlationId);
         }
         if (!headers.isEmpty()) {
             request.headers(headers);

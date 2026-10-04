@@ -82,5 +82,24 @@ Aumenta `autto.api.read-timeout` / `connect-timeout`. En entornos de prueba con 
 ### Pruebas inestables (flaky)
 
 Nada de `Thread.sleep` (lo bloquea Checkstyle), mantén `autto.timeouts.implicit=0s`, haz los escenarios
-independientes y re-ejecuta los fallos con `-Dcucumber.features=@target/autto-reports/rerun.txt` para distinguir
-flaky de roto.
+independientes y usa `./scripts/run-with-rerun.sh`: los escenarios fallidos corren una vez más y los que pasan en el segundo intento se
+listan como flaky (`recovered_on_rerun` en `metrics.json`, categoría `rerun` en el reporte) en lugar de esconderse.
+`BasePage` ya reintenta los elementos obsoletos; `autto.scenario.timeout` detiene los escenarios colgados. Ver
+[Pruebas avanzadas](pruebas-avanzadas.md).
+
+### `This version of ChromeDriver only supports Chrome version N`
+
+El navegador se actualizó después de guardar el driver en caché. Autto lo detecta, refresca la resolución y reintenta
+una vez. Si persiste, borra la caché (`rm -rf ~/.cache/selenium`) o usa `-Dautto.driver.resolution=selenium-manager`.
+
+### La simulación de red expira o informa `Invalid InterceptionId`
+
+Chromium usa intercepción DevTools y solo recurre a WebDriver BiDi, cuya intercepción de peticiones es poco fiable en
+algunas versiones de Chromium (visto en Chrome 150). Si faltan los bindings DevTools de tu versión del navegador
+(`Unable to find CDP implementation`), actualiza Selenium o el navegador y mantén `autto.browser.console-logs: true`.
+
+### La regresión visual difiere entre máquinas
+
+Las líneas base dependen del navegador, versión, sistema operativo y fuentes. Créalas y compáralas en el mismo
+entorno, preferiblemente el target Docker, y sube `autto.visual.tolerance` / ignora zonas dinámicas solo si hace
+falta.

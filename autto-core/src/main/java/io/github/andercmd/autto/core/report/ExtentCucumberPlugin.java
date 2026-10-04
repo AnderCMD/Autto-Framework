@@ -32,6 +32,8 @@ import io.cucumber.plugin.event.TestStepFinished;
 import io.cucumber.plugin.event.TestStepStarted;
 import io.cucumber.plugin.event.WriteEvent;
 import io.github.andercmd.autto.core.config.AuttoSettings;
+import io.github.andercmd.autto.core.observability.Correlation;
+import io.github.andercmd.autto.core.observability.RunSummaryPlugin;
 import io.github.andercmd.autto.core.security.Secrets;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -170,10 +172,15 @@ public final class ExtentCucumberPlugin implements ConcurrentEventListener {
             scenario.assignAuthor(authors.toArray(String[]::new));
         }
 
+        if (RunSummaryPlugin.isRerun()) {
+            scenario.assignCategory("rerun");
+        }
+
         ScenarioReport report = new ScenarioReport(scenario, parent);
         scenarios.put(testCase.getId(), report);
         ScenarioReport.bind(report);
         MDC.put(MDC_SCENARIO, testCase.getName());
+        Correlation.begin();
     }
 
     private void onCaseFinished(TestCaseFinished event) {
@@ -197,6 +204,7 @@ public final class ExtentCucumberPlugin implements ConcurrentEventListener {
             testCase.getTestSteps().forEach(step -> steps.remove(step.getId()));
             ScenarioReport.unbind();
             MDC.remove(MDC_SCENARIO);
+            Correlation.end();
         }
     }
 

@@ -64,4 +64,16 @@ class DriverFactoryTest {
         Map<String, Object> chrome = (Map<String, Object>) options.asMap().get(ChromeOptions.CAPABILITY);
         assertThat(chrome).containsEntry("binary", binary.toFile().getPath());
     }
+
+    @org.junit.jupiter.api.Test
+    void detectsDriverAndBrowserVersionMismatch() {
+        var mismatch = new org.openqa.selenium.SessionNotCreatedException(
+                "session not created: This version of ChromeDriver only supports Chrome version 150\n"
+                        + "Current browser version is 154.0.8037.97");
+
+        org.assertj.core.api.Assertions.assertThat(DriverFactory.isVersionMismatch(mismatch)).isTrue();
+        org.assertj.core.api.Assertions.assertThat(DriverFactory.isVersionMismatch(
+                new org.openqa.selenium.SessionNotCreatedException("Could not start a new session. grid busy")))
+                .isFalse();
+    }
 }
