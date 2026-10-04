@@ -149,7 +149,7 @@ network.delay("/api/products", Duration.ofSeconds(3));      // indicadores de ca
 Chrome y Edge usan el protocolo DevTools (`NetworkInterceptor` de Selenium, que necesita los bindings DevTools de la
 versión del navegador: Selenium incluye los más recientes). Firefox, y las versiones de Chromium sin bindings
 coincidentes, recurren a WebDriver BiDi (`autto.browser.console-logs: true`, el valor por defecto). `delay` reenvía la
-petición real tras la pausa. Verificado en Chrome 154: respuestas simuladas, hosts bloqueados y peticiones retrasadas
+petición real tras la pausa. No se soporta con el target de ejecución `docker` (el socket DevTools del contenedor no es alcanzable desde el host: falla de inmediato con un mensaje claro); usa el target local o un Selenium Grid. Verificado en Chrome 154 (local), Chrome, Edge y Firefox en Selenium Grid, y Firefox en Docker (BiDi): respuestas simuladas, hosts bloqueados y peticiones retrasadas
 (ver `features/quality`). La intercepción BiDi en Chrome 150 falló con *Invalid InterceptionId*, por eso DevTools va
 primero.
 

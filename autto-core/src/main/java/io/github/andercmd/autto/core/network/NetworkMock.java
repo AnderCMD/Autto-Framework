@@ -1,5 +1,7 @@
 package io.github.andercmd.autto.core.network;
 
+import io.github.andercmd.autto.core.config.AuttoSettings;
+import io.github.andercmd.autto.core.config.ExecutionTarget;
 import io.github.andercmd.autto.core.driver.DriverManager;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -174,7 +176,17 @@ public class NetworkMock implements AutoCloseable {
         }
     }
 
+    /** The Docker target publishes only the WebDriver port: the DevTools / BiDi sockets are unreachable from the host. */
+    static void requireSupportedTarget(ExecutionTarget target) {
+        if (target == ExecutionTarget.DOCKER) {
+            throw new IllegalStateException("NetworkMock is not supported with autto.execution.target=docker: the "
+                    + "browser's DevTools socket is not reachable from the host. Use the local target or a Selenium "
+                    + "Grid (SE_NODE_GRID_URL set), and exclude @network scenarios from Docker runs");
+        }
+    }
+
     private synchronized void add(Rule rule) {
+        requireSupportedTarget(AuttoSettings.get().properties().execution().target());
         rules.add(rule);
         WebDriver driver = DriverManager.driver();
         if (network == null && startCdp(driver)) {

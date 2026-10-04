@@ -36,4 +36,13 @@ class NetworkMockTest {
 
         assertThat(mock.rules()).isEmpty();
     }
+
+    @Test
+    void dockerTargetFailsFastWithAClearMessage() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> NetworkMock.requireSupportedTarget(io.github.andercmd.autto.core.config.ExecutionTarget.DOCKER))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("docker");
+        NetworkMock.requireSupportedTarget(io.github.andercmd.autto.core.config.ExecutionTarget.LOCAL);
+        NetworkMock.requireSupportedTarget(io.github.andercmd.autto.core.config.ExecutionTarget.REMOTE);
+    }
 }

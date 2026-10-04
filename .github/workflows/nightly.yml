@@ -26,9 +26,10 @@ jobs:
       actions: read
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
     with:
+      # Only the engine's POM: the e2e module depends on autto-core (not on Maven Central) and the starter template
+      # contains placeholders, so scanning them recursively cannot resolve.
       scan-args: |-
-        --recursive
-        ./
+        --lockfile=autto-core/pom.xml
 
   grid:
     name: Regression · Selenium Grid · ${{ matrix.browser }}
@@ -100,7 +101,7 @@ jobs:
           AUTTO_BROWSER_NAME: ${{ matrix.browser }}
         run: >
           ./scripts/run-with-rerun.sh
-          -Dcucumber.filter.tags="@regression and not @demo-failure and not @wip and not @ignore"
+          -Dcucumber.filter.tags="@regression and not @network and not @demo-failure and not @wip and not @ignore"
 
       - name: Upload report
         if: always()

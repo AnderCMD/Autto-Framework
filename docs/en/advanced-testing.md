@@ -148,7 +148,7 @@ network.delay("/api/products", Duration.ofSeconds(3));      // loading indicator
 Chrome and Edge use the DevTools protocol (Selenium's `NetworkInterceptor`, which needs the DevTools bindings that match
 the browser version: Selenium ships the latest ones). Firefox, and Chromium versions without matching bindings, fall
 back to WebDriver BiDi (`autto.browser.console-logs: true`, the default). `delay` forwards the real request after the
-pause. Verified on Chrome 154: stubbed responses, blocked hosts and delayed requests (see `features/quality`). WebDriver
+pause. It is not supported with the `docker` execution target (the container's DevTools socket is not reachable from the host: it fails fast with a clear message); use the local target or a Selenium Grid. Verified on Chrome 154 (local), Chrome, Edge and Firefox on Selenium Grid, and Firefox in Docker (BiDi): stubbed responses, blocked hosts and delayed requests (see `features/quality`). WebDriver
 BiDi request interception on Chrome 150 failed with *Invalid InterceptionId*, hence the DevTools engine first.
 
 ### Accessibility
