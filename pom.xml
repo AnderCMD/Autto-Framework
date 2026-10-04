@@ -71,6 +71,9 @@
         <jcodec.version>0.2.5</jcodec.version>
         <rest-assured.version>6.0.1</rest-assured.version>
         <axe-core.version>4.13.0</axe-core.version>
+        <!-- Transitive dependencies pinned above the vulnerable versions their parents bring (OSV) -->
+        <freemarker.version>2.3.35</freemarker.version>   <!-- GHSA-27j2-h3m2-8237, via extentreports -->
+        <rhino.version>1.7.15.1</rhino.version>           <!-- GHSA-3w8q-xq97-5j7x, via axe-core -->
 
         <!-- Quality -->
         <checkstyle.version>14.3.0</checkstyle.version>
@@ -189,6 +192,16 @@
                 <groupId>com.deque.html.axe-core</groupId>
                 <artifactId>selenium</artifactId>
                 <version>${axe-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.freemarker</groupId>
+                <artifactId>freemarker</artifactId>
+                <version>${freemarker.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>${rhino.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

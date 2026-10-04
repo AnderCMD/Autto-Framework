@@ -176,7 +176,7 @@ public class NetworkMock implements AutoCloseable {
         }
     }
 
-    /** The Docker target publishes only the WebDriver port: the DevTools / BiDi sockets are unreachable from the host. */
+    /** The Docker target publishes only the WebDriver port: DevTools / BiDi sockets are unreachable from the host. */
     static void requireSupportedTarget(ExecutionTarget target) {
         if (target == ExecutionTarget.DOCKER) {
             throw new IllegalStateException("NetworkMock is not supported with autto.execution.target=docker: the "
