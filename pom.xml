@@ -69,7 +69,7 @@
         <extentreports.version>5.1.2</extentreports.version>
         <datafaker.version>2.7.0</datafaker.version>
         <jcodec.version>0.2.5</jcodec.version>
-        <rest-assured.version>6.0.1</rest-assured.version>
+        <rest-assured.version>6.1.0</rest-assured.version>
         <axe-core.version>4.13.0</axe-core.version>
         <!-- Transitive dependencies pinned above the vulnerable versions their parents bring (OSV) -->
         <freemarker.version>2.3.35</freemarker.version>   <!-- GHSA-27j2-h3m2-8237, via extentreports -->
