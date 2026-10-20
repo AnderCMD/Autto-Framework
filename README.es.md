@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/logo-icon.svg" alt="Autto Framework logo" width="120">
+
 # Autto Framework
 
 **Framework empresarial y open source de automatización QA**
