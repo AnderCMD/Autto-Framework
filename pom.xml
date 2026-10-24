@@ -63,7 +63,7 @@
         <cucumber.version>8.0.4</cucumber.version>
         <selenium.version>4.51.0</selenium.version>
         <junit.version>6.1.3</junit.version>
-        <jackson2.version>2.22.3</jackson2.version>
+        <jackson2.version>2.22.4</jackson2.version>
         <webdrivermanager.version>6.4.0</webdrivermanager.version>
         <appium.version>11.0.0</appium.version>
         <extentreports.version>5.1.2</extentreports.version>
