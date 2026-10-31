@@ -14,7 +14,11 @@ secretGroup = 1
 path = '''(\.env.*|.*\.properties|.*\.ya?ml)$'''
 
 [allowlist]
-description = "Documentation placeholders"
+description = "Documentation placeholders and public test vectors"
+# RFC 6238 (TOTP) appendix B secret: published in the standard itself
+paths = [
+  '''autto-core/src/test/java/io/github/andercmd/autto/core/security/TotpTest\.java''',
+]
 regexes = [
   '''\$\{[A-Z0-9_]+(:[^}]*)?}''',
   '''(?i)(changeme|your[-_]?(password|token|key)|<[^>]+>)''',

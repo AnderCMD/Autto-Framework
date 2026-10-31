@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.bidi.HasBiDi;
 import org.openqa.selenium.bidi.module.LogInspector;
@@ -26,6 +27,7 @@ public final class DriverSession {
     private final String description;
     private final SessionDetails details;
     private final List<String> consoleEntries = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicBoolean closed = new AtomicBoolean();
     private VideoRecorder recorder;
     private LogInspector logInspector;
 
@@ -87,6 +89,9 @@ public final class DriverSession {
     }
 
     void quit() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
         if (recorder != null) {
             recorder.discard();
             recorder = null;

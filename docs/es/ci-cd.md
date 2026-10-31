@@ -12,14 +12,25 @@ Puntos clave para cualquier CI:
 
 | Workflow | Disparador | Jobs |
 |---|---|---|
-| `ci.yml` | push a `main`, pull requests, manual | **Secret scanning** (gitleaks, todo el historial) · **Dependency review** (pull requests: fallan las dependencias nuevas con vulnerabilidades altas/críticas) · **Build** (enforcer, checkstyle, tests unitarios, escenarios sin navegador) · **Matriz E2E** Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari) |
-| `nightly.yml` | cada noche, manual | `@regression` contra el Selenium Grid de Docker (en paralelo) y con navegadores Docker de WebDriverManager |
+| `ci.yml` | push a `main`, pull requests, manual | **Secret scanning** (gitleaks, todo el historial) · **Dependency review** (pull requests: fallan las dependencias nuevas con vulnerabilidades altas/críticas) · **Build** en JDK 21, 25 y 27 (enforcer, checkstyle, tests unitarios, umbral de cobertura, escenarios sin navegador; SpotBugs en 21; 27 es experimental) · **E2E**: los pull requests ejecutan solo Linux + Chrome; `main` y las ejecuciones manuales, la matriz Windows/macOS/Linux × Chrome/Firefox/Edge (+ Safari). Los escenarios fallidos se re-ejecutan una vez |
+| `nightly.yml` | cada noche, manual | Vulnerabilidades de dependencias con **OSV** · `@regression` contra el Selenium Grid de Docker (en paralelo) y con navegadores Docker de WebDriverManager, fallos re-ejecutados una vez · **publicación en Pages** opcional de cada reporte con historial · resumen opcional a Slack / Teams |
+| `release.yml` | tag `vX.Y.Z` | Build, pruebas, **SBOM**, **atestación** de procedencia, firmas **Sigstore** sin llaves, release de GitHub y **Maven Central** si existen sus secretos |
 
 Secreto requerido: `SAUCE_PASSWORD` (*Settings → Secrets and variables → Actions*). El workflow demo usa como
 respaldo la contraseña pública de la demo; elimina ese respaldo en una aplicación real.
 
-JDK 27 se instala con `oracle-actions/setup-java` desde jdk.java.net (builds Early Access hasta la GA de marzo de
-2027). Para otro JDK cambia `JAVA_RELEASE` y añade `-Djava.version=<n>` a los comandos Maven.
+Configuración opcional:
+
+| Nombre | Tipo | Efecto |
+|---|---|---|
+| `AUTTO_NOTIFICATIONS_WEBHOOK_URL` | secreto | Webhook entrante de Slack / Teams: el resumen nocturno se envía cuando algo falla (variable `AUTTO_NOTIFICATIONS_TYPE`: `slack` o `teams`) |
+| `PUBLISH_REPORTS` | variable = `true` | Publica cada reporte nocturno en la rama `gh-pages` (`runs/<n>/`) con una página de historial. Activa *Settings → Pages → Deploy from a branch → gh-pages*. Los reportes son públicos si el repositorio es público |
+| `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE` | secretos | Habilitan la publicación en Maven Central desde el workflow Release |
+
+Cada action está fijada a un SHA de commit (el comentario conserva la versión); Dependabot abre los pull requests de
+actualización. JDK 21 y 25 vienen de `actions/setup-java` (Temurin); JDK 27 de `oracle-actions/setup-java`
+(jdk.java.net, Early Access hasta la GA de marzo de 2027). Los jobs e2e usan `JAVA_RELEASE`; para otro JDK cámbialo y
+añade `-Djava.version=<n>` a los comandos Maven.
 
 ## Jenkins
 

@@ -1,0 +1,21 @@
+# Native Android app on an emulator or device through Appium 2 (UiAutomator2 driver).
+#   appium                                   # in another terminal (npm i -g appium && appium driver install uiautomator2)
+#   ./mvnw -pl autto-e2e test -Dspring.profiles.active=qa,appium -Dcucumber.filter.tags=@mobile
+# iOS: platform: ios, capabilities appium:bundleId + appium:deviceName / appium:platformVersion (XCUITest).
+autto:
+  execution:
+    target: appium
+    capabilities:
+      appium:deviceName: Android Emulator
+      # the system Settings app is installed on every emulator: replace with your own app package and activity
+      appium:appPackage: com.android.settings
+      appium:appActivity: .Settings
+      appium:noReset: true
+  appium:
+    url: http://127.0.0.1:4723
+    platform: android
+    # path or URL of the .apk / .ipa; empty to start an installed app through the capabilities below
+    app:
+  evidence:
+    # video recording uses screenshots, which every Appium driver supports
+    video: on-failure

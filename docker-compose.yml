@@ -6,6 +6,10 @@
 #
 # Grid console: http://localhost:4444/ui  (watch sessions live with noVNC, password: secret)
 # Pin a specific image version with: SELENIUM_IMAGE_TAG=<tag> docker compose up -d
+#
+# Test mail server (registration links, password resets, one-time codes): docker compose --profile mail up -d
+#   SMTP for the application under test: localhost:1025 · web UI and API (autto.mail.url): http://localhost:8025
+#
 # Note: the Edge image is only published for linux/amd64.
 
 x-node: &node
@@ -49,3 +53,17 @@ services:
     <<: *node
     image: selenium/node-edge:${SELENIUM_IMAGE_TAG:-latest}
     platform: linux/amd64
+
+  # Catches every e-mail sent by the application under test; read it with the Mailbox bean. Not started by default.
+  mailpit:
+    profiles: ["mail"]
+    image: axllent/mailpit:${MAILPIT_IMAGE_TAG:-latest}
+    container_name: autto-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6

@@ -23,6 +23,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param report Extent report settings
  * @param api REST API client ({@code Api})
  * @param accessibility accessibility audits ({@code Accessibility})
+ * @param scenario per-scenario guard rails (timeout)
+ * @param performance web performance budgets ({@code WebPerformance})
+ * @param visual visual regression ({@code VisualRegression})
+ * @param db JDBC access for data set-up and verification ({@code Database})
+ * @param mail test mailbox ({@code Mailbox})
+ * @param notifications run summary sent to Slack, Teams or a generic webhook
  */
 @ConfigurationProperties(prefix = "autto")
 public record AuttoProperties(
@@ -36,12 +42,18 @@ public record AuttoProperties(
         Evidence evidence,
         Reporting report,
         Api api,
-        Accessibility accessibility) {
+        Accessibility accessibility,
+        Scenario scenario,
+        Performance performance,
+        Visual visual,
+        Db db,
+        Mail mail,
+        Notifications notifications) {
 
     public AuttoProperties {
         baseUrl = blankToNull(baseUrl);
-        browser = browser != null ? browser : new Browser(null, null, null, null, null, null, null, null, null, null,
-                null, null, null);
+        browser = browser != null ? browser
+                : new Browser(null, null, null, null, null, null, null, null, null, null, null, null, null);
         driver = driver != null ? driver : new Driver(null, null, null, null, null, null);
         execution = execution != null ? execution : new Execution(null, null, null);
         docker = docker != null ? docker : new Docker(null, null, null);
@@ -51,11 +63,18 @@ public record AuttoProperties(
         report = report != null ? report : new Reporting(null, null, null, null, null, null, null, null, null, null);
         api = api != null ? api : new Api(null, null, null, null, null);
         accessibility = accessibility != null ? accessibility : new Accessibility(null, null, null);
+        scenario = scenario != null ? scenario : new Scenario(null);
+        performance = performance != null ? performance : new Performance(null, null, null, null, null);
+        visual = visual != null ? visual : new Visual(null, null, null, null, null);
+        db = db != null ? db : new Db(null, null, null, null);
+        mail = mail != null ? mail : new Mail(null, null);
+        notifications = notifications != null ? notifications : new Notifications(null, null, null, null);
     }
 
     /** Configuration with every default value. */
     public static AuttoProperties defaults() {
-        return new AuttoProperties(null, null, null, null, null, null, null, null, null, null, null);
+        return new AuttoProperties(null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null);
     }
 
     /**
@@ -284,6 +303,115 @@ public record AuttoProperties(
                     "wcag21aa");
             disabledRules = disabledRules != null ? List.copyOf(disabledRules) : List.of();
             failOn = failOn != null ? failOn : Impact.SERIOUS;
+        }
+    }
+
+    /**
+     * @param timeout a scenario that runs longer is aborted (its browser is closed) so a hung scenario cannot block
+     *     a whole parallel run; zero disables the guard
+     */
+    public record Scenario(Duration timeout) {
+
+        public Scenario {
+            timeout = timeout != null ? timeout : Duration.ofMinutes(10);
+            if (timeout.isNegative()) {
+                throw new IllegalArgumentException("autto.scenario.timeout must not be negative");
+            }
+        }
+    }
+
+    /**
+     * Web performance budgets; a value of zero (or less) disables that budget.
+     *
+     * @param fcp maximum First Contentful Paint
+     * @param lcp maximum Largest Contentful Paint (Chromium only)
+     * @param cls maximum Cumulative Layout Shift (Chromium only)
+     * @param ttfb maximum Time To First Byte
+     * @param load maximum time until the load event
+     */
+    public record Performance(Duration fcp, Duration lcp, Double cls, Duration ttfb, Duration load) {
+
+        public Performance {
+            fcp = fcp != null ? fcp : Duration.ofMillis(1800);
+            lcp = lcp != null ? lcp : Duration.ofMillis(2500);
+            cls = cls != null ? cls : 0.1;
+            ttfb = ttfb != null ? ttfb : Duration.ofMillis(800);
+            load = load != null ? load : Duration.ofSeconds(5);
+        }
+    }
+
+    /**
+     * @param baselineDir folder with the approved baseline images
+     * @param tolerance share of different pixels (0-1) still considered equal
+     * @param pixelThreshold per-channel difference (0-255) below which two pixels are equal
+     * @param update create or replace baselines instead of comparing (also {@code -Dautto.visual.update=true})
+     * @param diffDir where actual and diff images of failed comparisons are written
+     */
+    public record Visual(String baselineDir, Double tolerance, Integer pixelThreshold, Boolean update,
+            String diffDir) {
+
+        public Visual {
+            baselineDir = blankToNull(baselineDir) != null ? baselineDir.trim() : "src/test/resources/visual";
+            tolerance = tolerance != null ? tolerance : 0.001;
+            pixelThreshold = pixelThreshold != null ? pixelThreshold : 10;
+            update = update != null && update;
+            diffDir = blankToNull(diffDir) != null ? diffDir.trim() : "target/autto-reports/visual";
+            if (tolerance < 0 || tolerance > 1) {
+                throw new IllegalArgumentException("autto.visual.tolerance must be between 0 and 1, was " + tolerance);
+            }
+            if (pixelThreshold < 0 || pixelThreshold > 255) {
+                throw new IllegalArgumentException(
+                        "autto.visual.pixel-threshold must be between 0 and 255, was " + pixelThreshold);
+            }
+        }
+    }
+
+    /**
+     * @param url JDBC URL (empty = database support disabled)
+     * @param username database user
+     * @param password database password (masked in logs and reports)
+     * @param driverClass optional JDBC driver class, only for drivers that are not auto-registered
+     */
+    public record Db(String url, String username, String password, String driverClass) {
+
+        public Db {
+            url = blankToNull(url) != null ? url.trim() : null;
+            username = blankToNull(username);
+            password = blankToNull(password);
+            driverClass = blankToNull(driverClass);
+        }
+    }
+
+    /**
+     * @param url base URL of the Mailpit / MailHog-compatible API
+     * @param timeout how long to wait for a message
+     */
+    public record Mail(String url, Duration timeout) {
+
+        public Mail {
+            url = blankToNull(url) != null ? url.trim().replaceAll("/+$", "") : "http://localhost:8025";
+            timeout = timeout != null ? timeout : Duration.ofSeconds(30);
+            requirePositive("autto.mail.timeout", timeout);
+        }
+    }
+
+    /**
+     * @param webhookUrl incoming webhook (empty = notifications disabled; keep it in a secret)
+     * @param type slack, teams or generic (plain JSON summary)
+     * @param onlyOnFailure notify only when at least one scenario failed
+     * @param reportUrl link to the published report, shown in the message (e.g. the CI run or GitHub Pages URL)
+     */
+    public record Notifications(String webhookUrl, String type, Boolean onlyOnFailure, String reportUrl) {
+
+        public Notifications {
+            webhookUrl = blankToNull(webhookUrl);
+            type = blankToNull(type) != null ? type.trim().toLowerCase(java.util.Locale.ROOT) : "slack";
+            onlyOnFailure = onlyOnFailure != null && onlyOnFailure;
+            reportUrl = blankToNull(reportUrl);
+            if (!List.of("slack", "teams", "generic").contains(type)) {
+                throw new IllegalArgumentException(
+                        "autto.notifications.type must be slack, teams or generic, was '" + type + "'");
+            }
         }
     }
 

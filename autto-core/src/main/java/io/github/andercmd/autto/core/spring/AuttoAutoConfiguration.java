@@ -5,6 +5,9 @@ import io.github.andercmd.autto.core.api.Api;
 import io.github.andercmd.autto.core.config.AuttoProperties;
 import io.github.andercmd.autto.core.config.AuttoSettings;
 import io.github.andercmd.autto.core.context.ScenarioContext;
+import io.github.andercmd.autto.core.db.Database;
+import io.github.andercmd.autto.core.mail.Mailbox;
+import io.github.andercmd.autto.core.network.NetworkMock;
 import org.assertj.core.api.SoftAssertions;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -44,6 +47,29 @@ public class AuttoAutoConfiguration {
     @ConditionalOnMissingBean
     public Api api(AuttoSettings settings) {
         return new Api(settings);
+    }
+
+    /** Test mailbox (Mailpit-compatible API) for e-mail verification. */
+    @Bean
+    @ConditionalOnMissingBean
+    public Mailbox mailbox(AuttoSettings settings) {
+        return new Mailbox(settings);
+    }
+
+    /** JDBC access of the scenario; its clean-up statements run when the scenario ends. */
+    @Bean
+    @ScenarioScope
+    @ConditionalOnMissingBean
+    public Database database(AuttoSettings settings) {
+        return new Database(settings);
+    }
+
+    /** Network interception of the scenario's browser (Chromium); rules are removed when the scenario ends. */
+    @Bean
+    @ScenarioScope
+    @ConditionalOnMissingBean
+    public NetworkMock networkMock() {
+        return new NetworkMock();
     }
 
     /** Soft assertions of the current scenario, verified automatically when the scenario ends. */

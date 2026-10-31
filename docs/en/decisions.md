@@ -102,5 +102,6 @@ for them, so they never slow down other scenarios.
 - **Browser start retries** (`autto.driver.start-retries`, exponential back-off): busy Grids and cloud queues fail
   the session creation, not the test. Configuration errors are never retried.
 - **Soft assertions** verified automatically at the end of each scenario: all failures in one run.
-- **No retries of failed scenarios** inside the run: they hide real bugs. Re-run failures explicitly with
-  `rerun.txt` and investigate flakiness.
+- **No silent retries of failed scenarios** inside the run: they hide real bugs. A *second pass* re-runs only the
+  failures (`scripts/run-with-rerun.sh`) and records the scenarios that recovered as flaky in the report and in
+  `metrics.json`, so flakiness is visible and gets fixed instead of tolerated.

@@ -1,0 +1,15 @@
+# Every key: docs/en/configuration.md in https://github.com/AnderCMD/Autto-Framework
+spring:
+  profiles:
+    default: qa
+  main:
+    banner-mode: off
+
+autto:
+  base-url: https://example.com
+  browser:
+    name: chrome
+    headless: false
+  evidence:
+    screenshot: on-failure
+    video: on-failure

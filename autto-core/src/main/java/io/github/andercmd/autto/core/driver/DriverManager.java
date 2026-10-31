@@ -2,7 +2,9 @@ package io.github.andercmd.autto.core.driver;
 
 import io.github.andercmd.autto.core.config.AuttoProperties;
 import io.github.andercmd.autto.core.config.AuttoSettings;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,7 @@ public final class DriverManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DriverManager.class);
     private static final ThreadLocal<DriverSession> SESSION = new ThreadLocal<>();
+    private static final Map<Thread, DriverSession> BY_THREAD = new ConcurrentHashMap<>();
 
     private DriverManager() {
     }
@@ -37,7 +40,20 @@ public final class DriverManager {
                 () -> DriverFactory.create(settings));
         DriverSession session = new DriverSession(handle, settings.properties());
         SESSION.set(session);
+        BY_THREAD.put(Thread.currentThread(), session);
         LOG.info("Session started: {} ({})", session.details().label(), session.description());
+        return session;
+    }
+
+    /**
+     * Registers a driver created by your own code (custom start-up, a framework test with a fake driver) as the
+     * browser of the current thread. {@link #quit()} will quit it.
+     */
+    public static DriverSession adopt(WebDriver driver, AuttoSettings settings) {
+        quit();
+        DriverSession session = new DriverSession(DriverHandle.of(driver, "adopted"), settings.properties());
+        SESSION.set(session);
+        BY_THREAD.put(Thread.currentThread(), session);
         return session;
     }
 
@@ -70,10 +86,27 @@ public final class DriverManager {
             return;
         }
         SESSION.remove();
+        BY_THREAD.remove(Thread.currentThread());
         try {
             session.quit();
         } catch (RuntimeException e) {
             LOG.warn("Browser did not close cleanly: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Closes the browser owned by another thread (a scenario that timed out). The scenario fails with the next
+     * WebDriver call; its own cleanup finds the session already closed.
+     */
+    public static void abort(Thread owner) {
+        DriverSession session = BY_THREAD.get(owner);
+        if (session == null) {
+            return;
+        }
+        try {
+            session.quit();
+        } catch (RuntimeException e) {
+            LOG.warn("Browser of '{}' did not close cleanly: {}", owner.getName(), e.getMessage());
         }
     }
 }

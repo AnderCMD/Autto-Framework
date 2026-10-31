@@ -16,7 +16,7 @@ target/autto-reports/
 ├── videos/*.mp4
 ├── attachments/*           Page sources, CSV, PDF and any other attached file
 ├── logs/autto.log          Execution log with thread and scenario name
-├── rerun.txt               Failed scenarios (re-run with -Dcucumber.features=@target/autto-reports/rerun.txt)
+├── rerun.txt               Failed scenarios (re-run with ./scripts/run-with-rerun.sh)
 └── cucumber/
     ├── cucumber.html       Native Cucumber report (single file)
     ├── cucumber.json       For Jenkins Cucumber Reports, Xray, Zephyr…

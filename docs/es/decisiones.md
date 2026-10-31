@@ -105,5 +105,6 @@ ejecutan donde un step las pide, así que nunca ralentizan otros escenarios.
 - **Reintentos al arrancar el navegador** (`autto.driver.start-retries`, back-off exponencial): un Grid ocupado o la
   cola de la nube fallan la creación de la sesión, no la prueba. Los errores de configuración nunca se reintentan.
 - **Aserciones suaves** verificadas automáticamente al final de cada escenario: todos los fallos en una ejecución.
-- **Sin reintentos de escenarios fallidos** dentro de la ejecución: ocultan bugs reales. Re-ejecuta los fallos de
-  forma explícita con `rerun.txt` e investiga la inestabilidad.
+- **Sin reintentos silenciosos de escenarios fallidos** dentro de la ejecución: ocultan bugs reales. Una *segunda
+  pasada* re-ejecuta solo los fallos (`scripts/run-with-rerun.sh`) y registra los escenarios recuperados como flaky en
+  el reporte y en `metrics.json`, de modo que la inestabilidad se ve y se corrige en lugar de tolerarse.

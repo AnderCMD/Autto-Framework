@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
@@ -42,6 +43,8 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public abstract class BasePage {
+
+    private static final int STALE_RETRIES = 3;
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -142,45 +145,61 @@ public abstract class BasePage {
 
     protected void type(By locator, String text) {
         log.debug("Type into {}", locator);
-        WebElement element = visible(locator);
-        element.clear();
-        if (text != null && !text.isEmpty()) {
-            element.sendKeys(text);
-        }
+        retryStale(() -> {
+            WebElement element = visible(locator);
+            element.clear();
+            if (text != null && !text.isEmpty()) {
+                element.sendKeys(text);
+            }
+            return null;
+        });
     }
 
     protected String text(By locator) {
-        return visible(locator).getText().trim();
+        return retryStale(() -> visible(locator).getText().trim());
     }
 
     protected List<String> texts(By locator) {
-        return driver().findElements(locator).stream().map(WebElement::getText).map(String::trim).toList();
+        return retryStale(() -> driver().findElements(locator).stream().map(WebElement::getText).map(String::trim)
+                .toList());
     }
 
     protected String attribute(By locator, String name) {
-        return visible(locator).getDomAttribute(name);
+        return retryStale(() -> visible(locator).getDomAttribute(name));
     }
 
     protected void selectByValue(By locator, String value) {
-        new Select(visible(locator)).selectByValue(value);
+        retryStale(() -> {
+            new Select(visible(locator)).selectByValue(value);
+            return null;
+        });
     }
 
     protected void selectByText(By locator, String text) {
-        new Select(visible(locator)).selectByVisibleText(text);
+        retryStale(() -> {
+            new Select(visible(locator)).selectByVisibleText(text);
+            return null;
+        });
     }
 
     /** Clicks through JavaScript. Last resort for elements covered by overlays that a user could still click. */
     protected void jsClick(By locator) {
         log.debug("JavaScript click {}", locator);
-        js("arguments[0].click();", visible(locator));
+        retryStale(() -> js("arguments[0].click();", visible(locator)));
     }
 
     protected void doubleClick(By locator) {
-        new Actions(driver()).doubleClick(clickable(locator)).perform();
+        retryStale(() -> {
+            new Actions(driver()).doubleClick(clickable(locator)).perform();
+            return null;
+        });
     }
 
     protected void pressKeys(By locator, CharSequence... keys) {
-        visible(locator).sendKeys(keys);
+        retryStale(() -> {
+            visible(locator).sendKeys(keys);
+            return null;
+        });
     }
 
     /** Types the text and presses Enter (search boxes, single-field forms). */
@@ -195,11 +214,31 @@ public abstract class BasePage {
     }
 
     protected void hover(By locator) {
-        new Actions(driver()).moveToElement(visible(locator)).perform();
+        retryStale(() -> {
+            new Actions(driver()).moveToElement(visible(locator)).perform();
+            return null;
+        });
     }
 
     protected void scrollIntoView(By locator) {
         js("arguments[0].scrollIntoView({block: 'center'});", driver().findElement(locator));
+    }
+
+    /**
+     * Runs an interaction again (up to {@value #STALE_RETRIES} times) when the page re-renders between locating the
+     * element and using it. Single-page applications do this constantly; it is the main source of flaky UI tests.
+     */
+    protected <T> T retryStale(Supplier<T> action) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return action.get();
+            } catch (StaleElementReferenceException e) {
+                if (attempt >= STALE_RETRIES) {
+                    throw e;
+                }
+                log.debug("Element went stale, retrying ({}/{})", attempt, STALE_RETRIES);
+            }
+        }
     }
 
     protected Object js(String script, Object... args) {

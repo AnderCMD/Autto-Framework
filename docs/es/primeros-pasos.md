@@ -34,6 +34,15 @@ Abre **`autto-e2e/target/autto-reports/index.html`**.
 > `./mvnw install` construye `autto-core` y luego ejecuta la suite. Para ejecutar solo la suite cuando el core ya
 > está instalado: `./mvnw -pl autto-e2e test`.
 
+## Revisa tu entorno
+
+```bash
+./scripts/doctor.sh
+```
+
+Indica qué falta (JDK, `.env`, navegadores, Docker, que `autto.base-url` responda) antes de perder tiempo en una
+ejecución que falla.
+
 ## Compilar con un JDK anterior a 27
 
 ```bash

@@ -175,15 +175,41 @@ autto:
 | `disabled-rules` | `[]` | Ids de reglas axe que nunca se evalúan (p. ej. `color-contrast` mientras llega un rediseño). |
 | `fail-on` | `serious` | Impacto mínimo que rechaza `AccessibilityResult.assertNoViolations()`: `minor`, `moderate`, `serious`, `critical`. |
 
+### `autto.scenario`, `autto.performance`, `autto.visual` ([Pruebas avanzadas](pruebas-avanzadas.md))
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `scenario.timeout` | `10m` | Un escenario que dura más se aborta (navegador cerrado, hilo interrumpido); `0` lo desactiva. |
+| `performance.fcp` / `lcp` / `ttfb` / `load` | `1800ms` / `2500ms` / `800ms` / `5s` | Presupuestos de `WebPerformance`; `0` desactiva uno. |
+| `performance.cls` | `0.1` | Presupuesto de Cumulative Layout Shift; `0` lo desactiva. |
+| `visual.baseline-dir` | `src/test/resources/visual` | Imágenes base aprobadas. |
+| `visual.tolerance` | `0.001` | Proporción de píxeles distintos (0-1) aún aceptada. |
+| `visual.pixel-threshold` | `10` | Diferencia por canal (0-255) bajo la cual dos píxeles son iguales. |
+| `visual.update` | `false` | Crear / reemplazar las líneas base en lugar de comparar (`-Dautto.visual.update=true`). |
+| `visual.diff-dir` | `target/autto-reports/visual` | Imágenes actual y diff de las comparaciones fallidas. |
+
+### `autto.db`, `autto.mail`, `autto.notifications`
+
+| Clave | Por defecto | Descripción |
+|---|---|---|
+| `db.url` / `username` / `password` | — | Conexión JDBC del asistente `Database` (la contraseña se enmascara). `driver-class` solo para drivers que no se registran solos. |
+| `mail.url` | `http://localhost:8025` | API compatible con Mailpit que lee `Mailbox`. |
+| `mail.timeout` | `30s` | Cuánto espera `Mailbox.waitFor`. |
+| `notifications.webhook-url` | — | Webhook entrante de Slack / Teams / genérico (un secreto); vacío desactiva las notificaciones. |
+| `notifications.type` | `slack` | `slack`, `teams` o `generic` (métricas JSON). |
+| `notifications.only-on-failure` | `false` | Enviar solo si algún escenario falló. |
+| `notifications.report-url` | — | Enlace añadido al mensaje (ejecución del CI, GitHub Pages). |
+
 ### Cucumber (`junit-platform.properties`)
 
 | Clave | Por defecto | Descripción |
 |---|---|---|
 | `cucumber.filter.tags` | `not @wip and not @ignore and not @demo-failure` | Expresión de tags. |
-| `cucumber.features` | — | Sobrescribe las features (`classpath:features/login`, `@target/autto-reports/rerun.txt`). |
+| `cucumber.features` | — | Sobrescribe las features (`classpath:features/login`, separadas por coma; lista de fallidos: `-Dcucumber.features="$(paste -sd, autto-e2e/target/autto-reports/rerun.txt)"` o `./scripts/run-with-rerun.sh`). |
 | `cucumber.glue` | `io.github.andercmd.autto.e2e,io.github.andercmd.autto.core.cucumber` | Steps + hooks del framework. |
 | `cucumber.execution.parallel.enabled` | `false` | Escenarios en paralelo. |
-| `cucumber.execution.parallel.config.fixed.parallelism` | `4` | Hilos. |
+| `cucumber.execution.parallel.config.strategy` | `dynamic` | `dynamic` (núcleos × factor) o `fixed` (`fixed.parallelism=N`, mejor cuando un Grid o la nube limita las sesiones libres). |
+| `cucumber.execution.parallel.config.dynamic.factor` | `1` | Hilos por núcleo. |
 
 ### Otros
 
