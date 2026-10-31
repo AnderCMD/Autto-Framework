@@ -57,31 +57,31 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Platform -->
-        <spring-boot.version>4.1.1</spring-boot.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
 
         <!-- Test stack (imported BEFORE the Spring Boot BOM, so these versions win) -->
         <cucumber.version>8.0.4</cucumber.version>
         <selenium.version>4.50.0</selenium.version>
         <junit.version>6.1.3</junit.version>
-        <jackson2.version>2.22.3</jackson2.version>
+        <jackson2.version>2.22.4</jackson2.version>
         <webdrivermanager.version>6.4.0</webdrivermanager.version>
         <appium.version>10.1.1</appium.version>
         <extentreports.version>5.1.2</extentreports.version>
         <datafaker.version>2.7.0</datafaker.version>
         <jcodec.version>0.2.5</jcodec.version>
-        <rest-assured.version>6.0.1</rest-assured.version>
-        <axe-core.version>4.13.0</axe-core.version>
+        <rest-assured.version>6.3.0</rest-assured.version>
+        <axe-core.version>4.14.0</axe-core.version>
 
         <!-- Quality -->
         <checkstyle.version>14.3.0</checkstyle.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
-        <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+        <maven-enforcer-plugin.version>3.7.0</maven-enforcer-plugin.version>
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
