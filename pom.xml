@@ -77,7 +77,7 @@
 
         <!-- Quality -->
         <checkstyle.version>14.3.0</checkstyle.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
