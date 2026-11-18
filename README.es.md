@@ -8,7 +8,7 @@
 **Spring Boot · Cucumber · Selenium · REST Assured · axe-core · Extent Reports · Java 27**
 
 [![CI](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml/badge.svg)](https://github.com/AnderCMD/Autto-Framework/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Java](https://img.shields.io/badge/Java-27-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6db33f)
 ![Cucumber](https://img.shields.io/badge/Cucumber-8.0.4-23d96c)
@@ -161,4 +161,4 @@ mostrar las evidencias de un fallo:
 
 ## Licencia
 
-[MIT](LICENSE) © AnderCMD y colaboradores.
+[Apache 2.0](LICENSE) © AnderCMD y colaboradores.
