@@ -60,7 +60,7 @@
         <spring-boot.version>4.1.2</spring-boot.version>
 
         <!-- Test stack (imported BEFORE the Spring Boot BOM, so these versions win) -->
-        <cucumber.version>8.0.4</cucumber.version>
+        <cucumber.version>8.1.0</cucumber.version>
         <selenium.version>4.51.0</selenium.version>
         <junit.version>6.1.3</junit.version>
         <jackson2.version>2.22.4</jackson2.version>
