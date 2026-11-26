@@ -76,7 +76,7 @@
         <rhino.version>1.9.2</rhino.version>           <!-- GHSA-3w8q-xq97-5j7x, via axe-core -->
 
         <!-- Quality -->
-        <checkstyle.version>14.3.0</checkstyle.version>
+        <checkstyle.version>14.4.0</checkstyle.version>
         <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Plugins -->
