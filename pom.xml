@@ -63,7 +63,7 @@
         <cucumber.version>8.1.0</cucumber.version>
         <selenium.version>4.51.0</selenium.version>
         <!-- Transitive via Selenium; pinned above its default to fix GHSA-ccrj-gw8r-854m (opentelemetry-api < 1.67.0) -->
-        <opentelemetry.version>1.67.0</opentelemetry.version>
+        <opentelemetry.version>1.68.0</opentelemetry.version>
         <junit.version>6.1.3</junit.version>
         <jackson2.version>2.23.0</jackson2.version>
         <webdrivermanager.version>6.4.0</webdrivermanager.version>
